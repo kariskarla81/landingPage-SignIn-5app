@@ -40,6 +40,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 import { MODULES } from "@/config/modules";
@@ -419,6 +420,9 @@ export default function ModulePage() {
                   <span className="text-zinc-500">·</span>
                   {viewSample.sample_name}
                 </DialogTitle>
+                <DialogDescription className="text-zinc-500">
+                  Detail hasil pengujian & analisa AI sampel.
+                </DialogDescription>
               </DialogHeader>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
