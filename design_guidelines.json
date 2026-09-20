@@ -1,0 +1,156 @@
+{
+  "theme_and_identity": {
+    "brand_name": "Elastech Production",
+    "tagline": "SaaS, IoT, Web App, Mobile App",
+    "theme_mode": "dark",
+    "design_archetype": "The Performance Pro / Swiss High-Contrast",
+    "vibe": "Professional, Industrial Tech, Sleek, Data-Heavy, Elegant",
+    "industry": "Petroleum Laboratory Technology"
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Outfit, sans-serif",
+      "weights": ["400", "500", "700"],
+      "usage": "Use tight letter spacing (tracking-tight) for H1/H2."
+    },
+    "body": {
+      "font_family": "Inter, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "Use for all data tables, inputs, and general text."
+    },
+    "mono": {
+      "font_family": "JetBrains Mono, monospace",
+      "usage": "Use for data values, test results, and AI analysis confidence scores."
+    },
+    "rules": [
+      "NEVER use Inter for Headings.",
+      "H1 size max text-5xl.",
+      "Labels must be uppercase, tiny (text-xs), and wide spacing (tracking-[0.2em])."
+    ]
+  },
+  "colors": {
+    "backgrounds": {
+      "app": "bg-zinc-950",
+      "sidebar": "bg-zinc-900",
+      "card": "bg-zinc-900/50",
+      "input": "bg-zinc-900"
+    },
+    "text": {
+      "primary": "text-zinc-50",
+      "secondary": "text-zinc-400",
+      "muted": "text-zinc-500"
+    },
+    "accents": {
+      "primary": "amber-500",
+      "primary_hover": "amber-400",
+      "info": "blue-500",
+      "success": "emerald-500",
+      "warning": "amber-500",
+      "danger": "rose-500"
+    },
+    "borders": {
+      "default": "border-zinc-800",
+      "focus": "border-amber-500/50"
+    },
+    "rules": [
+      "Pure black (#000000) is banned. Use zinc-950 as the deepest dark.",
+      "Use true gray surfaces (zinc) to reduce eye fatigue.",
+      "Accent color (amber) should be used sparingly for primary actions (Export PDF, Analyze).",
+      "Never use full-screen gradients. Use solid colors with subtle borders."
+    ]
+  },
+  "layouts_and_spacing": {
+    "sidebar": {
+      "width": "w-72",
+      "state": "Permanent left sidebar for desktop",
+      "content": "Logo/Brand name at top, navigation links below."
+    },
+    "main_content": {
+      "padding": "p-8 or p-10",
+      "max_width": "max-w-7xl mx-auto"
+    },
+    "bento_grid": {
+      "gap": "gap-6",
+      "usage": "Use for the landing page statistics or feature highlights."
+    },
+    "spacing_scale": "Use generous spacing (p-6, p-8) inside cards.",
+    "rules": [
+      "Optical alignment over geometrical alignment.",
+      "Cards should have 1px solid border (border-zinc-800) and no shadow in dark mode (or very subtle ambient shadow)."
+    ]
+  },
+  "components": {
+    "buttons": {
+      "style": "Sharp or slightly rounded (rounded-md), high contrast.",
+      "primary": "bg-amber-500 text-zinc-950 hover:bg-amber-400 font-medium",
+      "secondary": "bg-zinc-800 text-zinc-50 hover:bg-zinc-700 border border-zinc-700"
+    },
+    "cards": {
+      "style": "Flat background, 1px subtle border, no shadow by default.",
+      "classes": "bg-zinc-900/40 border border-zinc-800 rounded-lg p-6"
+    },
+    "tables": {
+      "style": "Dense, clean borders. Striped or simple divider lines.",
+      "header": "text-xs uppercase tracking-wider text-zinc-400 border-b border-zinc-800",
+      "row": "border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors"
+    },
+    "inputs": {
+      "style": "Dark background, subtle border, colored focus ring.",
+      "classes": "bg-zinc-950 border-zinc-800 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-sm"
+    },
+    "badges": {
+      "style": "Subtle tint background with high contrast text.",
+      "ai_analysis": "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+    }
+  },
+  "motion_and_interactions": {
+    "hover_states": "All interactive elements must have hover states (e.g., hover:bg-zinc-800).",
+    "transitions": "Use specific transitions (transition-colors duration-200), NEVER transition-all.",
+    "active_states": "Navigation links should highlight the active route clearly with a subtle background and amber left-border indicator."
+  },
+  "media_and_assets": {
+    "icons": {
+      "library": "lucide-react",
+      "style": "Clean, line-based."
+    },
+    "images": [
+      {
+        "url": "https://images.unsplash.com/photo-1695668548342-c0c1ad479aee?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwyfHxkYXJrJTIwdGVjaG5vbG9neSUyMHNlcnZlciUyMHJvb218ZW58MHx8fHwxNzg5ODgyOTU3fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Dark technology server room",
+        "usage": "Hero background or accent image for the SaaS/IoT landing page section, with heavy dark overlay (bg-zinc-950/80)."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1602052577122-f73b9710adba?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAxODF8MHwxfHNlYXJjaHwxfHxwZXRyb2xldW0lMjBsYWJvcmF0b3J5JTIwdGVjaG5vbG9neXxlbnwwfHx8fDE3ODk4ODI5NTd8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Laboratory workbench",
+        "usage": "Use as a card thumbnail or subtle background for the laboratory testing modules."
+      }
+    ]
+  },
+  "page_structure": {
+    "landing_page": {
+      "layout": "Hero section with large Outfit heading 'Elastech Production'. Subheading for 'SaaS, IoT, Web App, Mobile App'. Followed by a bento grid showing quick stats or introducing the 3 lab testing modules.",
+      "vibe": "High visual impact, elegant dark mode portfolio."
+    },
+    "testing_modules": {
+      "shared_layout": "Header with Module Title and 'Export to PDF' button. Main content split into two columns: Left for Data Input Form, Right for AI Analysis Result and Results Table.",
+      "sections": [
+        "Data Input Form: Selects, text inputs for sample details.",
+        "Rating Assessment: Visual indicator or dropdown.",
+        "AI Analysis Card: A highlighted card (maybe subtle blue or amber glowing border) containing AI insights.",
+        "Results Table: Historical or current run data displayed cleanly."
+      ]
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure minimum 4.5:1 ratio. Text on dark backgrounds must be legible.",
+    "testing": "All interactive elements (buttons, inputs, nav links) MUST include data-testid attribute (e.g., data-testid='nav-khtt-analyst', data-testid='export-pdf-btn')."
+  },
+  "universal_guidelines_for_main_agent": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this.",
+    "Do NOT center align the app container. No .App { text-align: center; }.",
+    "Create depth using 1px borders and slight background color variations (zinc-950 vs zinc-900) instead of heavy shadows.",
+    "Do not use complete transparent background in headers or surfaces with content underneath.",
+    "Use Shadcn UI components heavily but customize them to fit the dark zinc theme.",
+    "Use standard HTML forms integrated with Shadcn for the lab testing inputs."
+  ]
+}
