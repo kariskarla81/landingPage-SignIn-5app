@@ -18,6 +18,13 @@ import DkaHistory from "@/pages/dka/History";
 import DkaTrend from "@/pages/dka/Trend";
 import DkaResult from "@/pages/dka/Result";
 import DkaScale from "@/pages/dka/Scale";
+import CopperLayout from "@/pages/copper/CopperLayout";
+import CopperDashboard from "@/pages/copper/Dashboard";
+import CopperNewTest from "@/pages/copper/NewTest";
+import CopperHistory from "@/pages/copper/History";
+import CopperTrend from "@/pages/copper/Trend";
+import CopperResult from "@/pages/copper/Result";
+import CopperScale from "@/pages/copper/Scale";
 
 function App() {
   return (
@@ -41,6 +48,14 @@ function App() {
           </Route>
           <Route path="/rating-dka/result/:id" element={<DkaResult />} />
           <Route path="/rating-dka/scale" element={<DkaScale />} />
+          <Route path="/copper-strip" element={<CopperLayout />}>
+            <Route index element={<CopperDashboard />} />
+            <Route path="new" element={<CopperNewTest />} />
+            <Route path="history" element={<CopperHistory />} />
+            <Route path="trend" element={<CopperTrend />} />
+          </Route>
+          <Route path="/copper-strip/result/:id" element={<CopperResult />} />
+          <Route path="/copper-strip/scale" element={<CopperScale />} />
           <Route path="/:module" element={<ModulePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

@@ -43,8 +43,29 @@ Frontend baru (React):
 - File: frontend/src/lib/kht/{api,format,pdf}.js, components/kht/{ui,viz,capture}.jsx, pages/kht/*.jsx.
 - Testing agent: backend 11/11 (tests/test_kht.py), frontend semua alur lolos (test_reports/iteration_2.json).
 
+## Copper Strip ASTM D130 — paritas dengan versi mobile (2026-07, selesai; backend teruji 18/18)
+Sumber: github.com/karismswzet-tech/RatingMeasurement3-App (mobile Expo). Copper Strip yang tadinya hanya
+manual-entry generik kini dibangun ulang jadi modul AI Vision penuh, meniru pola modul DKA yang sudah ada.
+Backend /api/copper/*: upload (pakai /api/kht/upload bersama) + analyze/start job async + polling jobs/{id},
+AI Vision Gemini gemini-3.1-pro-preview membandingkan foto sampel vs chart standar ASTM D130/IP 154 (bundled
+reference/astm_d130.jpg), klasifikasi 0/1a/1b/2a/2b/2c/2d/3a/3b/3c/4a/4b/4c, status CLEAR (kelas 0/1a/1b) /
+TARNISH, severity 0–12, confidence, ai_summary + recommendation (Bahasa Indonesia). CRUD tests (search q,
+edit klasifikasi→auto recompute label/group/color/severity/status, edit summary/recommendation, soft delete),
+dashboard (total/clear/tarnish), trend, reference-scale (base64 chart + 13 kelas). 4 demo test + reference
+di-seed saat startup.
+Frontend (React) mirror DKA/KHT:
+- Rute: /copper-strip (Dashboard), /new, /history, /trend, /copper-strip/result/:id, /copper-strip/scale.
+- New Test: Camera (getUserMedia)/Gallery + form (Sample ID auto CU-YYYY-MM-DD-nnn, Product default
+  "Diesel Fuel B30", Batch, Operator, Temp 100°C, Duration 3h, Remark), Run AI Vision (polling s/d 6 menit).
+- Result: CopperClassGauge (swatch warna kelas + border CLEAR/TARNISH), CopperClassPicker koreksi manual 0–4c,
+  edit inline deskripsi/rekomendasi, export PDF (layout identik mobile via window.print), delete.
+- History: search backend + mode pilih (Pilih Semua) + export PDF gabungan (cover + 1 halaman/sampel).
+- Trend: severity chart 0–12. Scale: chart standar ASTM D130 + daftar 13 kelas dengan status.
+- File: frontend/src/lib/copper/{api,pdf}.js, components/copper/ui.jsx, pages/copper/*.jsx. Sidebar sub-nav Copper.
+- Teruji testing agent: backend 18/18 lolos (termasuk analisa AI nyata ±27 dtk).
+
 ## Backlog
-- P1: Samakan modul Copper Strip ASTM D130 & Rating DKA dengan versi mobile (AI Vision, backend sudah ada di repo mobile).
+- P1: Samakan modul Rating DKA dengan versi mobile (sudah ada modul /dka AI Vision + OCR di web).
 - P1: Edit existing sample; search/filter & pagination in results table.
 - P1: Spec/limit-based auto pass-fail rating suggestions per parameter.
 - P2: Dashboard analytics across modules (trend charts).

@@ -23,8 +23,8 @@ export const MODULES = {
     title: "Copper Strip ASTM D130",
     short: "Copper Strip",
     description:
-      "Uji korosi bilah tembaga (copper strip corrosion) sesuai standar ASTM D130.",
-    ratingOptions: ["1a", "1b", "2a", "2b", "2c", "2d", "2e", "3a", "3b", "4a", "4b", "4c"],
+      "Uji korosi bilah tembaga (copper strip corrosion) dengan AI Vision — klasifikasi ASTM D130 / IP 154 (1a–4c), status CLEAR/TARNISH & export PDF.",
+    ratingOptions: ["0", "1a", "1b", "2a", "2b", "2c", "2d", "3a", "3b", "3c", "4a", "4b", "4c"],
     ratingLabel: "Classification (ASTM D130)",
     parameters: [
       { key: "test_temperature", label: "Test Temperature", unit: "°C", type: "number" },

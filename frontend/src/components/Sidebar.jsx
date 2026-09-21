@@ -4,6 +4,7 @@ import { FlaskConical, Beaker, Gauge, Hexagon, Circle, Palette } from "lucide-re
 import { MODULE_LIST } from "@/config/modules";
 import { KHT_TABS } from "@/pages/kht/KhtLayout";
 import { DKA_TABS } from "@/pages/dka/DkaLayout";
+import { COPPER_TABS } from "@/pages/copper/CopperLayout";
 
 const ICONS = {
   khtt: FlaskConical,
@@ -13,6 +14,7 @@ const ICONS = {
 
 const SUBNAV = {
   khtt: { tabs: [...KHT_TABS, { to: "/khtt/color-scale", label: "Color Scale", icon: Palette }], active: "text-amber-500" },
+  "copper-strip": { tabs: [...COPPER_TABS, { to: "/copper-strip/scale", label: "ASTM D130", icon: Palette }], active: "text-amber-400" },
   "rating-dka": { tabs: [...DKA_TABS, { to: "/rating-dka/scale", label: "DKA Standard", icon: Palette }], active: "text-blue-400" },
 };
 
