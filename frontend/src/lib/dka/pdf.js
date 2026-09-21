@@ -18,9 +18,9 @@ const commonStyles = () => `
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     td, th { padding: 8px 6px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: left; }
     th { font-size: 10px; color: #64748b; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; }
-    .thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
-    .thumb { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
-    .thumb img { width: 100%; height: 150px; object-fit: cover; display: block; }
+    .thumbs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+    .thumb { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: #f8fafc; }
+    .thumb img { width: 100%; height: 300px; object-fit: contain; background: #f8fafc; display: block; }
     .thumb .cap { padding: 6px; font-size: 10px; color: #374151; text-align: center; }
     .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-top: 10px; }
     .meta-grid div { font-size: 11px; color: #374151; padding: 4px 0; border-bottom: 1px solid #eef2f7; }
