@@ -1,7 +1,8 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
-import { FlaskConical, Beaker, Gauge, Hexagon, Circle } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import { FlaskConical, Beaker, Gauge, Hexagon, Circle, Palette } from "lucide-react";
 import { MODULE_LIST } from "@/config/modules";
+import { KHT_TABS } from "@/pages/kht/KhtLayout";
 
 const ICONS = {
   khtt: FlaskConical,
@@ -9,7 +10,27 @@ const ICONS = {
   "rating-dka": Gauge,
 };
 
+const KhtSubNav = () => (
+  <div className="ml-6 mt-1 flex flex-col gap-0.5 border-l border-zinc-700 pl-3" data-testid="sidebar-khtt-subnav">
+    {[...KHT_TABS, { to: "/khtt/color-scale", label: "Color Scale", icon: Palette }].map((t) => (
+      <NavLink
+        key={t.to}
+        to={t.to}
+        end={t.end}
+        data-testid={`sidebar-khtt-${t.label.toLowerCase().replace(" ", "-")}`}
+        className={({ isActive }) =>
+          `flex items-center gap-2 rounded px-2 py-1.5 font-mono text-[11px] transition-colors ${isActive ? "text-amber-500" : "text-zinc-500 hover:text-zinc-200"}`
+        }
+      >
+        <t.icon className="h-3.5 w-3.5" />
+        {t.label}
+      </NavLink>
+    ))}
+  </div>
+);
+
 export const Sidebar = () => {
+  const { pathname } = useLocation();
   return (
     <aside
       data-testid="app-sidebar"
@@ -41,8 +62,8 @@ export const Sidebar = () => {
           {MODULE_LIST.map((m) => {
             const Icon = ICONS[m.slug] || Circle;
             return (
+              <React.Fragment key={m.slug}>
               <NavLink
-                key={m.slug}
                 to={`/${m.slug}`}
                 data-testid={`nav-${m.slug}`}
                 className={({ isActive }) =>
@@ -69,6 +90,8 @@ export const Sidebar = () => {
                   </>
                 )}
               </NavLink>
+              {m.slug === "khtt" && pathname.startsWith("/khtt") && <KhtSubNav />}
+              </React.Fragment>
             );
           })}
         </nav>

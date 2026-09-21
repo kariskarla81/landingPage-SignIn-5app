@@ -4,7 +4,7 @@ export const MODULES = {
     title: "K-HTT Analyst",
     short: "K-HTT",
     description:
-      "Analisa kualitas & karakteristik High Temperature Test pada produk minyak bumi.",
+      "Komatsu Hot Tube Tester — AI Vision rating endapan 0–10 (Nikko Color Scale) untuk oli & pelumas.",
     ratingOptions: ["Excellent", "Good", "Fair", "Poor", "Reject"],
     ratingLabel: "Overall Rating",
     parameters: [
