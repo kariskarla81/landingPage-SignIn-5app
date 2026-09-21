@@ -105,18 +105,22 @@ export const KHTScaleDetail = () => (
   </div>
 );
 
-export const KhtHeader = ({ title, subtitle, backTo, right }) => (
+export const KhtHeader = ({ title, subtitle, backTo, right, logo = "KHT", accent = "amber" }) => {
+  const bg = accent === "blue" ? "bg-blue-500" : "bg-amber-500";
+  const tx = accent === "blue" ? "text-blue-400" : "text-amber-500";
+  return (
   <div className="flex items-center gap-3 border-b border-zinc-700 bg-zinc-900 px-6 py-4">
     {backTo && (
       <Link to={backTo} data-testid="kht-back-btn" className="flex h-10 w-10 items-center justify-center rounded-md text-zinc-50 transition-colors hover:bg-zinc-800">
         <ChevronLeft className="h-5 w-5" />
       </Link>
     )}
-    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500 font-heading text-sm font-bold text-zinc-950">KHT</div>
+    <div className={`flex h-10 w-10 items-center justify-center rounded-md ${bg} font-heading text-sm font-bold text-zinc-950`}>{logo}</div>
     <div className="flex-1 leading-tight">
       <div className="font-heading text-xl font-bold tracking-wide text-zinc-50" data-testid="kht-page-title">{title}</div>
-      {subtitle && <div className="font-mono text-[11px] text-amber-500">{subtitle}</div>}
+      {subtitle && <div className={`font-mono text-[11px] ${tx}`}>{subtitle}</div>}
     </div>
     {right}
   </div>
-);
+  );
+};

@@ -11,6 +11,13 @@ import KhtHistory from "@/pages/kht/History";
 import KhtTrend from "@/pages/kht/Trend";
 import KhtResult from "@/pages/kht/Result";
 import KhtColorScale from "@/pages/kht/ColorScale";
+import DkaLayout from "@/pages/dka/DkaLayout";
+import DkaDashboard from "@/pages/dka/Dashboard";
+import DkaNewTest from "@/pages/dka/NewTest";
+import DkaHistory from "@/pages/dka/History";
+import DkaTrend from "@/pages/dka/Trend";
+import DkaResult from "@/pages/dka/Result";
+import DkaScale from "@/pages/dka/Scale";
 
 function App() {
   return (
@@ -26,6 +33,14 @@ function App() {
           </Route>
           <Route path="/khtt/result/:id" element={<KhtResult />} />
           <Route path="/khtt/color-scale" element={<KhtColorScale />} />
+          <Route path="/rating-dka" element={<DkaLayout />}>
+            <Route index element={<DkaDashboard />} />
+            <Route path="new" element={<DkaNewTest />} />
+            <Route path="history" element={<DkaHistory />} />
+            <Route path="trend" element={<DkaTrend />} />
+          </Route>
+          <Route path="/rating-dka/result/:id" element={<DkaResult />} />
+          <Route path="/rating-dka/scale" element={<DkaScale />} />
           <Route path="/:module" element={<ModulePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

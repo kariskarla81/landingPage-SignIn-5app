@@ -39,7 +39,7 @@ export const MODULES = {
     title: "Rating DKA",
     short: "Rating DKA",
     description:
-      "Penilaian Deposit / Karbon / Aging (DKA) pada minyak pelumas & bahan bakar.",
+      "Analisa batch hingga 4 tabung per foto dengan AI Vision + OCR label — kategori CLEAR · Aspect 1 · Aspect 2 · Aspect 3.",
     ratingOptions: ["A - Sangat Baik", "B - Baik", "C - Cukup", "D - Kurang", "E - Buruk"],
     ratingLabel: "DKA Rating",
     parameters: [
