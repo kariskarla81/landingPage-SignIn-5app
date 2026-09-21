@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { Menu, X, Hexagon, FlaskConical, Beaker, Gauge } from "lucide-react";
+import { Menu, X, Hexagon, FlaskConical, Beaker, Gauge, LogOut } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { MODULE_LIST } from "@/config/modules";
+import { useAuth } from "@/context/AuthContext";
 
 const ICONS = { khtt: FlaskConical, "copper-strip": Beaker, "rating-dka": Gauge };
 
 export const Layout = () => {
   const [open, setOpen] = useState(false);
+  const { logout } = useAuth();
 
   return (
     <div className="App min-h-screen bg-zinc-950 text-zinc-50">
@@ -51,6 +53,14 @@ export const Layout = () => {
               </NavLink>
             );
           })}
+          <button
+            type="button"
+            onClick={() => { setOpen(false); logout(); }}
+            data-testid="mobile-logout-button"
+            className="mt-1 flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10"
+          >
+            <LogOut className="h-4 w-4" /> Logout
+          </button>
         </div>
       )}
 

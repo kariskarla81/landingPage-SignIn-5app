@@ -1,6 +1,9 @@
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/context/AuthContext";
+import RequireAuth from "@/components/RequireAuth";
+import Login from "@/pages/Login";
 import { Layout } from "@/components/Layout";
 import Landing from "@/pages/Landing";
 import ModulePage from "@/pages/ModulePage";
@@ -29,38 +32,43 @@ import CopperScale from "@/pages/copper/Scale";
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Landing />} />
-          <Route path="/khtt" element={<KhtLayout />}>
-            <Route index element={<KhtDashboard />} />
-            <Route path="new" element={<KhtNewTest />} />
-            <Route path="history" element={<KhtHistory />} />
-            <Route path="trend" element={<KhtTrend />} />
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<RequireAuth />}>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Landing />} />
+              <Route path="/khtt" element={<KhtLayout />}>
+                <Route index element={<KhtDashboard />} />
+                <Route path="new" element={<KhtNewTest />} />
+                <Route path="history" element={<KhtHistory />} />
+                <Route path="trend" element={<KhtTrend />} />
+              </Route>
+              <Route path="/khtt/result/:id" element={<KhtResult />} />
+              <Route path="/khtt/color-scale" element={<KhtColorScale />} />
+              <Route path="/rating-dka" element={<DkaLayout />}>
+                <Route index element={<DkaDashboard />} />
+                <Route path="new" element={<DkaNewTest />} />
+                <Route path="history" element={<DkaHistory />} />
+                <Route path="trend" element={<DkaTrend />} />
+              </Route>
+              <Route path="/rating-dka/result/:id" element={<DkaResult />} />
+              <Route path="/rating-dka/scale" element={<DkaScale />} />
+              <Route path="/copper-strip" element={<CopperLayout />}>
+                <Route index element={<CopperDashboard />} />
+                <Route path="new" element={<CopperNewTest />} />
+                <Route path="history" element={<CopperHistory />} />
+                <Route path="trend" element={<CopperTrend />} />
+              </Route>
+              <Route path="/copper-strip/result/:id" element={<CopperResult />} />
+              <Route path="/copper-strip/scale" element={<CopperScale />} />
+              <Route path="/:module" element={<ModulePage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
           </Route>
-          <Route path="/khtt/result/:id" element={<KhtResult />} />
-          <Route path="/khtt/color-scale" element={<KhtColorScale />} />
-          <Route path="/rating-dka" element={<DkaLayout />}>
-            <Route index element={<DkaDashboard />} />
-            <Route path="new" element={<DkaNewTest />} />
-            <Route path="history" element={<DkaHistory />} />
-            <Route path="trend" element={<DkaTrend />} />
-          </Route>
-          <Route path="/rating-dka/result/:id" element={<DkaResult />} />
-          <Route path="/rating-dka/scale" element={<DkaScale />} />
-          <Route path="/copper-strip" element={<CopperLayout />}>
-            <Route index element={<CopperDashboard />} />
-            <Route path="new" element={<CopperNewTest />} />
-            <Route path="history" element={<CopperHistory />} />
-            <Route path="trend" element={<CopperTrend />} />
-          </Route>
-          <Route path="/copper-strip/result/:id" element={<CopperResult />} />
-          <Route path="/copper-strip/scale" element={<CopperScale />} />
-          <Route path="/:module" element={<ModulePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-      <Toaster position="top-right" theme="dark" richColors />
+        </Routes>
+        <Toaster position="top-right" theme="dark" richColors />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

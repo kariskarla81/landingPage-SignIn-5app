@@ -6,13 +6,15 @@ import asyncio
 import base64
 import logging
 import re
+import bcrypt
+import secrets
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Annotated, Any, Dict
 
 import requests
-from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import Response
+from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, Request
+from fastapi.responses import Response, JSONResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -40,6 +42,105 @@ api_router = APIRouter(prefix="/api")
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# ===========================================================================
+# Authentication — single admin (credentials from env), bcrypt + sliding session
+# ===========================================================================
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+_ADMIN_HASH_B64 = os.environ.get("ADMIN_PASSWORD_HASH_B64", "")
+try:
+    ADMIN_PASSWORD_HASH = base64.b64decode(_ADMIN_HASH_B64) if _ADMIN_HASH_B64 else b""
+except Exception:
+    ADMIN_PASSWORD_HASH = b""
+SESSION_TTL_MINUTES = int(os.environ.get("SESSION_TTL_MINUTES", "60"))
+
+
+def _verify_password(plain: str) -> bool:
+    if not ADMIN_PASSWORD_HASH:
+        return False
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), ADMIN_PASSWORD_HASH)
+    except Exception:
+        return False
+
+
+def _session_expiry_iso() -> str:
+    return (datetime.now(timezone.utc) + timedelta(minutes=SESSION_TTL_MINUTES)).isoformat()
+
+
+def _extract_token(request: Request) -> str:
+    tok = request.headers.get("x-session-token")
+    if tok:
+        return tok.strip()
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip()
+    return ""
+
+
+async def _validate_session(token: str) -> Optional[dict]:
+    """Return the session doc if the token is valid & not expired (by inactivity),
+    refreshing its sliding expiry. Otherwise delete/ignore and return None."""
+    if not token:
+        return None
+    doc = await db.sessions.find_one({"token": token})
+    if not doc:
+        return None
+    exp = doc.get("expires_at")
+    exp_dt = None
+    try:
+        exp_dt = datetime.fromisoformat(exp) if isinstance(exp, str) else exp
+    except Exception:
+        exp_dt = None
+    if exp_dt is not None and exp_dt.tzinfo is None:
+        exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    if not exp_dt or now > exp_dt:
+        await db.sessions.delete_one({"token": token})
+        return None
+    await db.sessions.update_one(
+        {"token": token},
+        {"$set": {"last_active": now.isoformat(), "expires_at": _session_expiry_iso()}},
+    )
+    return doc
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+@api_router.post("/auth/login")
+async def auth_login(req: LoginRequest):
+    if req.username.strip().lower() != ADMIN_USERNAME.strip().lower() or not _verify_password(req.password):
+        raise HTTPException(status_code=401, detail="Username atau password salah")
+    token = secrets.token_urlsafe(32)
+    now = now_iso()
+    await db.sessions.insert_one({
+        "token": token,
+        "username": ADMIN_USERNAME,
+        "created_at": now,
+        "last_active": now,
+        "expires_at": _session_expiry_iso(),
+    })
+    return {"token": token, "username": ADMIN_USERNAME, "ttl_minutes": SESSION_TTL_MINUTES}
+
+
+@api_router.get("/auth/me")
+async def auth_me(request: Request):
+    doc = await _validate_session(_extract_token(request))
+    if not doc:
+        raise HTTPException(status_code=401, detail="Sesi tidak valid atau telah berakhir")
+    return {"username": doc.get("username"), "ttl_minutes": SESSION_TTL_MINUTES}
+
+
+@api_router.post("/auth/logout")
+async def auth_logout(request: Request):
+    token = _extract_token(request)
+    if token:
+        await db.sessions.delete_one({"token": token})
+    return {"ok": True}
 
 
 # ===========================================================================
@@ -1649,6 +1750,30 @@ async def seed_kht():
 
 
 app.include_router(api_router)
+
+
+# --- Auth guard: protect all /api/* routes except login/me/logout, health,
+#     image serving (used in <img> tags) and CORS preflight. Added BEFORE the
+#     CORS middleware so CORS remains the outermost layer (401s keep CORS headers).
+_AUTH_PUBLIC_EXACT = {"/api", "/api/"}
+
+
+@app.middleware("http")
+async def auth_guard(request: Request, call_next):
+    path = request.url.path
+    if request.method == "OPTIONS" or not path.startswith("/api"):
+        return await call_next(request)
+    if (
+        path in _AUTH_PUBLIC_EXACT
+        or path.startswith("/api/auth/")
+        or path.startswith("/api/kht/files/")
+    ):
+        return await call_next(request)
+    doc = await _validate_session(_extract_token(request))
+    if not doc:
+        return JSONResponse(status_code=401, content={"detail": "Tidak terautentikasi. Silakan login."})
+    return await call_next(request)
+
 
 app.add_middleware(
     CORSMiddleware,

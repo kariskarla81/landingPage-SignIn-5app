@@ -109,6 +109,20 @@ user_problem_statement: |
   dibangun ulang menjadi modul AI Vision penuh (/api/copper/*) meniru pola modul DKA yang sudah ada.
 
 backend:
+  - task: "Auth — single admin login/logout/me + sliding session (/api/auth/*) and route guard middleware"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Added single-admin auth. Credentials from env (ADMIN_USERNAME, ADMIN_PASSWORD_HASH_B64 = base64 of bcrypt hash to avoid $ interpolation; SESSION_TTL_MINUTES=60). Endpoints: POST /api/auth/login {username,password} -> {token,username,ttl_minutes} (401 on bad creds); GET /api/auth/me (needs X-Session-Token; 401 if invalid/expired; refreshes sliding expiry); POST /api/auth/logout (deletes session). HTTP middleware auth_guard protects ALL /api/* except: OPTIONS, /api & /api/ (health), /api/auth/*, /api/kht/files/* (image serving used in <img> tags). Sessions stored in Mongo 'sessions' collection with sliding expires_at. Verified via curl end-to-end (401 without token, 200 with token, logout invalidates). Test creds admin/Elastech@2026 in /app/memory/test_credentials.md."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL 16 AUTH TESTS PASSED. (1) Login scenarios: wrong password→401✅, correct creds→200 with {token,username:admin,ttl_minutes:60}✅, wrong username→401✅. (2) Route guard: protected endpoints without token→401✅, with X-Session-Token→200✅, smoke check /api/copper/dashboard, /api/dka/dashboard, /api/kht/dashboard all return 200 with token✅. (3) /api/auth/me: without token→401✅, with valid token→200 {username:admin,ttl_minutes:60}✅, with garbage token abc123→401✅. (4) Public paths: GET /api/ (health)→200✅, GET /api/kht/files/nonexistentfile→404 (not 401, image serving is public)✅. (5) Logout: POST /api/auth/logout→200 {ok:true}✅, reusing same token on /api/copper/dashboard→401✅, reusing on /api/auth/me→401✅ (session fully deleted). (6) Sliding expiry: 3 consecutive /api/auth/me calls all return 200✅ (expiry refreshes on each call). Auth system working correctly. Both X-Session-Token and Authorization: Bearer <token> headers supported."
   - task: "Copper Strip AI Vision analyze job (start + polling) — /api/copper/analyze/start & jobs/{id}"
     implemented: true
     working: true
@@ -154,20 +168,66 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Copper Strip AI Vision analyze job (start + polling) — /api/copper/analyze/start & jobs/{id}"
-    - "Copper Strip CRUD + dashboard/trend/reference-scale — /api/copper/tests, /copper/dashboard, /copper/trend, /copper/reference-scale"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+    - agent: "testing"
+      message: |
+        ✅ AUTHENTICATION TESTING COMPLETE — ALL 16 TESTS PASSED
+        
+        Comprehensive authentication system testing completed successfully. All scenarios from the review request passed:
+        
+        **Login scenarios (3/3 passed):**
+        - POST /api/auth/login with wrong password → 401 ✅
+        - POST /api/auth/login with correct credentials (admin/Elastech@2026) → 200 {token, username:"admin", ttl_minutes:60} ✅
+        - POST /api/auth/login with wrong username → 401 ✅
+        
+        **Route guard (4/4 passed):**
+        - GET /api/copper/dashboard without token → 401 ✅
+        - GET /api/copper/dashboard with X-Session-Token → 200 (normal dashboard JSON) ✅
+        - GET /api/dka/dashboard with token → 200 ✅
+        - GET /api/kht/dashboard with token → 200 ✅
+        
+        **/api/auth/me endpoint (3/3 passed):**
+        - GET /api/auth/me without token → 401 ✅
+        - GET /api/auth/me with valid token → 200 {username:"admin", ttl_minutes:60} ✅
+        - GET /api/auth/me with garbage token "abc123" → 401 ✅
+        
+        **Public paths (2/2 passed):**
+        - GET /api/ (health) → 200 ✅
+        - GET /api/kht/files/nonexistentfile → 404 (not 401, image serving is public) ✅
+        
+        **Logout invalidates session (3/3 passed):**
+        - POST /api/auth/logout with token → 200 {ok:true} ✅
+        - Reuse same token on GET /api/copper/dashboard → 401 ✅
+        - Reuse same token on GET /api/auth/me → 401 ✅
+        
+        **Sliding expiry (1/1 passed):**
+        - 3 consecutive GET /api/auth/me calls with same token → all 200 (expiry refreshes) ✅
+        
+        **Summary:** Authentication system is fully functional. Single-admin login working correctly, route guard protecting all /api/* endpoints except public paths (/api/, /api/auth/*, /api/kht/files/*), session management with sliding expiry working, logout properly invalidates sessions. Both X-Session-Token and Authorization: Bearer headers supported. No issues found.
     - agent: "main"
       message: |
+        NEW: Test the authentication system ONLY (do not retest Copper/DKA/KHT business logic beyond a smoke check).
+        Admin credentials are in /app/memory/test_credentials.md (admin / Elastech@2026). Token is sent via header X-Session-Token (also accepts Authorization: Bearer).
+        Verify:
+        1) POST /api/auth/login with wrong password -> 401; with correct creds -> 200 {token, username:"admin", ttl_minutes:60}.
+        2) Any protected endpoint (e.g. GET /api/copper/dashboard, /api/dka/dashboard, /api/kht/dashboard) WITHOUT token -> 401; WITH valid X-Session-Token -> 200 (confirms existing modules still work under the guard).
+        3) GET /api/auth/me without token -> 401; with valid token -> {username:"admin"}. 
+        4) Public paths must NOT require auth: GET /api/ (health) -> 200; GET /api/kht/files/<anything> must NOT return 401 (image serving is public; 404 for missing file is fine).
+        5) POST /api/auth/logout with token -> {ok:true}; then reusing that same token on a protected endpoint -> 401 (session fully deleted).
+        6) Sliding expiry sanity: after login, calling /api/auth/me repeatedly keeps returning 200 (expiry refreshes). (Do NOT wait 60 min.)
+        Note: sessions stored in Mongo 'sessions' collection. Do not delete demo test data.
+    - agent: "main"
+      message: |
+        (Previous) Copper Strip backend request — already completed & passed 18/18.
         Please test the NEW Copper Strip backend endpoints under /api/copper/* ONLY (do not retest KHT/DKA).
         Flow to verify:
         1) GET /api/copper/dashboard, /api/copper/trend, /api/copper/tests, /api/copper/reference-scale (4 demo records + 13-class scale seeded).

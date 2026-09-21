@@ -64,6 +64,18 @@ Frontend (React) mirror DKA/KHT:
 - File: frontend/src/lib/copper/{api,pdf}.js, components/copper/ui.jsx, pages/copper/*.jsx. Sidebar sub-nav Copper.
 - Teruji testing agent: backend 18/18 lolos (termasuk analisa AI nyata ±27 dtk).
 
+## Auth — login internal (single admin) (2026-07, selesai; backend teruji 16/16)
+Halaman login profesional untuk aplikasi internal. Backend: kredensial dari env (ADMIN_USERNAME,
+ADMIN_PASSWORD_HASH_B64 = base64 dari bcrypt hash agar `$` aman di .env; SESSION_TTL_MINUTES=60).
+Endpoint /api/auth/login|me|logout; session di Mongo 'sessions' dengan expiry geser (sliding) untuk
+timeout inaktivitas. Middleware auth_guard memproteksi SEMUA /api/* kecuali: OPTIONS, /api & /api/
+(health), /api/auth/*, /api/kht/files/* (serving gambar untuk <img>). Frontend: AuthProvider + interceptor
+(axios + global fetch inject X-Session-Token, tangani 401), RequireAuth guard (redirect ke /login bila
+belum login), halaman /login (tema navy/cyan, show/hide password, error inline), tombol Logout di sidebar
+& top-bar mobile (hapus session backend + token lokal). Kredensial default admin/Elastech@2026 (di
+memory/test_credentials.md). Catatan: preview diakses via host REACT_APP_BACKEND_URL
+(web-app-rating.preview.emergentagent.com) — mengakses via host lain memicu CORS.
+
 ## Backlog
 - P1: Samakan modul Rating DKA dengan versi mobile (sudah ada modul /dka AI Vision + OCR di web).
 - P1: Edit existing sample; search/filter & pagination in results table.
