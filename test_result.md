@@ -123,6 +123,15 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ ALL 16 AUTH TESTS PASSED. (1) Login scenarios: wrong password→401✅, correct creds→200 with {token,username:admin,ttl_minutes:60}✅, wrong username→401✅. (2) Route guard: protected endpoints without token→401✅, with X-Session-Token→200✅, smoke check /api/copper/dashboard, /api/dka/dashboard, /api/kht/dashboard all return 200 with token✅. (3) /api/auth/me: without token→401✅, with valid token→200 {username:admin,ttl_minutes:60}✅, with garbage token abc123→401✅. (4) Public paths: GET /api/ (health)→200✅, GET /api/kht/files/nonexistentfile→404 (not 401, image serving is public)✅. (5) Logout: POST /api/auth/logout→200 {ok:true}✅, reusing same token on /api/copper/dashboard→401✅, reusing on /api/auth/me→401✅ (session fully deleted). (6) Sliding expiry: 3 consecutive /api/auth/me calls all return 200✅ (expiry refreshes on each call). Auth system working correctly. Both X-Session-Token and Authorization: Bearer <token> headers supported."
+        - working: false
+          agent: "user"
+          comment: "User reported 'username atau password salah' after fresh GitHub import. Root cause: .env files are gitignored and were missing after import."
+        - working: true
+          agent: "main"
+          comment: "Reconstructed backend/.env and frontend/.env files. Reset admin password from 'Elastech@2026' to 'admin123' per user request for simple standard trial credentials. Updated ADMIN_PASSWORD_HASH_B64 in backend/.env with new bcrypt hash (base64 encoded). Updated /app/memory/test_credentials.md with new credentials. Verified locally via curl: old password returns 401, new password returns 200 with token."
+        - working: true
+          agent: "testing"
+          comment: "✅ PASSWORD RESET VERIFIED — ALL 9 TESTS PASSED. (1) Login with admin/admin123→200 {token,username:admin,ttl_minutes:60}✅. (2) Login with wrong password→401 'Username atau password salah'✅. (3) Login with old password 'Elastech@2026'→401 (correctly rejected)✅. (4) GET /api/auth/me with valid token→200 {username:admin,ttl_minutes:60}✅. (5) GET /api/auth/me without token→401✅. (6) GET /api/copper/tests without token→401 'Tidak terautentikasi. Silakan login.'✅. (7) GET /api/copper/tests with valid token→200 (4 records)✅. (8) POST /api/auth/logout→200 {ok:true}✅. (9) GET /api/auth/me with invalidated token→401✅. Password reset successful. New credentials working correctly. Old password properly rejected. All auth flows functional."
   - task: "Copper Strip AI Vision analyze job (start + polling) — /api/copper/analyze/start & jobs/{id}"
     implemented: true
     working: true
@@ -275,3 +284,48 @@ agent_communication:
         - Soft delete implemented correctly
         
         **Note:** Only the AI-created test record was deleted during testing. All 4 seeded demo records (CU-2026-05-*) remain intact.
+
+
+agent_communication:
+    - agent: "main"
+      message: |
+        User reported "username atau password salah" on login after fresh GitHub import.
+        Root cause: .env files are gitignored so they were NOT imported — backend had no
+        ADMIN_PASSWORD_HASH_B64 / MONGO_URL etc. I reconstructed backend/.env and frontend/.env.
+        Per user's request for simple STANDARD trial credentials, admin password reset to a
+        simple value. Current credentials (memory/test_credentials.md): username=admin, password=admin123.
+        Verified locally via curl: old password now 401, new password returns token 200.
+        Please TEST the auth flow only against /api/auth/*:
+          1. POST /api/auth/login with admin/admin123 → 200 + token
+          2. POST /api/auth/login with wrong password → 401
+          3. GET /api/auth/me with token → 200 returns username
+          4. Protected route (e.g. GET /api/kht/... or any /api/* non-auth) without token → 401
+          5. POST /api/auth/logout invalidates token (subsequent /api/auth/me → 401)
+        Do NOT re-test Copper/DKA/KHT business logic (already passed previously).
+    - agent: "testing"
+      message: |
+        ✅ AUTH PASSWORD RESET VERIFICATION COMPLETE — ALL 9 TESTS PASSED
+        
+        Comprehensive testing of the password reset from "Elastech@2026" to "admin123" completed successfully.
+        All authentication scenarios verified:
+        
+        **Login scenarios (3/3 passed):**
+        - POST /api/auth/login with admin/admin123 → 200 {token, username:"admin", ttl_minutes:60} ✅
+        - POST /api/auth/login with wrong password "wrongpass" → 401 "Username atau password salah" ✅
+        - POST /api/auth/login with old password "Elastech@2026" → 401 (correctly rejected) ✅
+        
+        **/api/auth/me endpoint (2/2 passed):**
+        - GET /api/auth/me with valid token → 200 {username:"admin", ttl_minutes:60} ✅
+        - GET /api/auth/me without token → 401 ✅
+        
+        **Route guard (2/2 passed):**
+        - GET /api/copper/tests without token → 401 "Tidak terautentikasi. Silakan login." ✅
+        - GET /api/copper/tests with valid token → 200 (4 records) ✅
+        
+        **Logout and token invalidation (2/2 passed):**
+        - POST /api/auth/logout with token → 200 {ok:true} ✅
+        - GET /api/auth/me with invalidated token → 401 ✅
+        
+        **Summary:** Password reset successful. New credentials (admin/admin123) working correctly.
+        Old password (Elastech@2026) properly rejected. All auth flows functional. User can now login
+        with the new standard trial credentials.
