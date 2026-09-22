@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Hexagon, Loader2, Lock, ShieldCheck, User } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Hexagon, Loader2, Lock, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Login() {
   const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || "/khtt";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +57,7 @@ export default function Login() {
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cyan-500 shadow-lg shadow-cyan-500/20">
             <Hexagon className="h-8 w-8 text-zinc-950" strokeWidth={2.5} />
           </div>
-          <h1 className="font-heading mt-4 text-2xl font-bold tracking-tight text-zinc-50">Elastech Production</h1>
+          <h1 className="font-heading mt-4 text-xl font-bold leading-snug tracking-tight text-zinc-50">Laboratorium Product Development</h1>
           <p className="mt-1 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-400">
             <ShieldCheck className="h-3.5 w-3.5" /> Internal Access
           </p>
@@ -121,8 +121,19 @@ export default function Login() {
         </form>
 
         <p className="mt-6 text-center font-mono text-[10px] tracking-wider text-zinc-600">
-          © 2026 Elastech Production · Authorized personnel only
+          © 2026 Laboratorium Product Development · Authorized personnel only
         </p>
+
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            data-testid="login-back-home"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-1.5 font-mono text-[11px] tracking-wider text-zinc-500 transition-colors hover:text-cyan-400"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke Beranda
+          </button>
+        </div>
       </div>
     </div>
   );

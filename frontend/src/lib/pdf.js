@@ -19,11 +19,11 @@ export function exportSamplePdf(module, sample) {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.text("Elastech Production", margin, 42);
+  doc.text("Laboratorium Product Development", margin, 42);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(200, 200, 205);
-  doc.text("Petroleum Laboratory Testing Report", margin, 60);
+  doc.text("Lubricant Testing & Product Development Report", margin, 60);
   doc.setTextColor(...AMBER);
   doc.setFontSize(11);
   doc.text(module.title, pageW - margin, 42, { align: "right" });

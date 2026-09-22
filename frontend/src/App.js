@@ -35,9 +35,10 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* Public landing page — no authentication required */}
+          <Route path="/" element={<Landing />} />
           <Route element={<RequireAuth />}>
             <Route element={<Layout />}>
-              <Route path="/" element={<Landing />} />
               <Route path="/khtt" element={<KhtLayout />}>
                 <Route index element={<KhtDashboard />} />
                 <Route path="new" element={<KhtNewTest />} />

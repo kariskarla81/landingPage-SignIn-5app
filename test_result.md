@@ -182,6 +182,20 @@ frontend:
         - working: "NA"
           agent: "main"
           comment: "Built copper module mirroring DKA/KHT web pattern. Routes /copper-strip (layout+dashboard), /new, /history, /trend, /copper-strip/result/:id, /copper-strip/scale. New Test: camera/gallery + form (Sample ID auto CU-, Product default Diesel Fuel B30, Batch, Operator, Temp 100, Duration 3, Remark) + Run AI Vision with polling. Result: class gauge, manual class picker (0-4c), inline edit summary/recommendation, export PDF, delete. History: search + multi-select combined PDF. Trend: severity chart. Scale: ASTM D130 chart. Dashboard + Scale verified visually via screenshots."
+  - task: "Navigation flow restructure: PUBLIC landing page + login-protected testing pages + redirect flows"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Landing.jsx, frontend/src/App.js, frontend/src/components/RequireAuth.jsx, frontend/src/components/Layout.jsx, frontend/src/components/Sidebar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Restructured navigation: PUBLIC landing page at '/' (no auth required), login-protected testing pages (/khtt, /copper-strip, /rating-dka), RequireAuth redirects to /login with 'from' state, after login redirects to selected module or defaults to /khtt. Updated branding from 'Elastech Production' to 'Laboratorium / Product Development' in sidebar and landing page."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL 5 NAVIGATION FLOWS PASSED. (1) PUBLIC LANDING: Root '/' renders without redirect when logged out✅, landing page (data-testid='landing-page') found✅, title 'Laboratorium Product Development'✅, badge 'Engine Lubricant Testing • Performance Testing • Product Development • Quality Assurance'✅, motto band 'TEST • ANALYZE • INNOVATE • PERFORM'✅, 'Our Expertise' section with 5 cards (Lubricant Testing, Performance Testing, Product Development, Data & Analysis, Innovation & Automation)✅, quote 'Dari Pengujian, Lahir Inovasi...'✅, 'Laboratory Modules / Tools Pengujian Pelumas' section with 3 module cards (K-HTT, Copper Strip, Rating DKA)✅, top-right 'Masuk' button (nav-signin-btn)✅, hero 'Masuk ke Halaman Pengujian' button (hero-enter-btn)✅. (2) PROTECTION REDIRECT: Clicked K-HTT module card while logged out→redirected to /login✅, login form appeared✅, logged in with admin/admin123→landed on /khtt page✅, app sidebar present✅. (3) GENERIC SIGN IN: Logout→back to /login✅, navigated to landing→clicked top-right 'Masuk' button→/login✅, logged in→landed on /khtt (default redirect)✅, sidebar present✅. (4) TESTING PAGES WORK: K-HTT navigation✅, Copper Strip navigation✅, Rating DKA navigation✅, sidebar shows all three modules✅. (5) DIRECT PROTECTED URL: Accessed /copper-strip while logged out→redirected to /login✅, login form appeared✅. BRANDING: Sidebar shows 'Laboratorium / Product Development'✅, old branding 'Elastech Production' NOT present anywhere✅. NO CONSOLE ERRORS✅, NO NETWORK ERRORS✅. All navigation flows working correctly."
 
 metadata:
   created_by: "main_agent"
@@ -190,7 +204,8 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Copper Strip web module (Dashboard/New Test/History/Trend/Result/Scale) parity with mobile"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -198,39 +213,7 @@ test_plan:
 agent_communication:
     - agent: "testing"
       message: |
-        ✅ AUTHENTICATION TESTING COMPLETE — ALL 16 TESTS PASSED
-        
-        Comprehensive authentication system testing completed successfully. All scenarios from the review request passed:
-        
-        **Login scenarios (3/3 passed):**
-        - POST /api/auth/login with wrong password → 401 ✅
-        - POST /api/auth/login with correct credentials (admin/Elastech@2026) → 200 {token, username:"admin", ttl_minutes:60} ✅
-        - POST /api/auth/login with wrong username → 401 ✅
-        
-        **Route guard (4/4 passed):**
-        - GET /api/copper/dashboard without token → 401 ✅
-        - GET /api/copper/dashboard with X-Session-Token → 200 (normal dashboard JSON) ✅
-        - GET /api/dka/dashboard with token → 200 ✅
-        - GET /api/kht/dashboard with token → 200 ✅
-        
-        **/api/auth/me endpoint (3/3 passed):**
-        - GET /api/auth/me without token → 401 ✅
-        - GET /api/auth/me with valid token → 200 {username:"admin", ttl_minutes:60} ✅
-        - GET /api/auth/me with garbage token "abc123" → 401 ✅
-        
-        **Public paths (2/2 passed):**
-        - GET /api/ (health) → 200 ✅
-        - GET /api/kht/files/nonexistentfile → 404 (not 401, image serving is public) ✅
-        
-        **Logout invalidates session (3/3 passed):**
-        - POST /api/auth/logout with token → 200 {ok:true} ✅
-        - Reuse same token on GET /api/copper/dashboard → 401 ✅
-        - Reuse same token on GET /api/auth/me → 401 ✅
-        
-        **Sliding expiry (1/1 passed):**
-        - 3 consecutive GET /api/auth/me calls with same token → all 200 (expiry refreshes) ✅
-        
-        **Summary:** Authentication system is fully functional. Single-admin login working correctly, route guard protecting all /api/* endpoints except public paths (/api/, /api/auth/*, /api/kht/files/*), session management with sliding expiry working, logout properly invalidates sessions. Both X-Session-Token and Authorization: Bearer headers supported. No issues found.
+        ✅ ALL 16 AUTH TESTS PASSED. (1) Login scenarios: wrong password→401✅, correct creds→200 with {token,username:admin,ttl_minutes:60}✅, wrong username→401✅. (2) Route guard: protected endpoints without token→401✅, with X-Session-Token→200✅, smoke check /api/copper/dashboard, /api/dka/dashboard, /api/kht/dashboard all return 200 with token✅. (3) /api/auth/me: without token→401✅, with valid token→200 {username:admin,ttl_minutes:60}✅, with garbage token abc123→401✅. (4) Public paths: GET /api/ (health)→200✅, GET /api/kht/files/nonexistentfile→404 (not 401, image serving is public)✅. (5) Logout: POST /api/auth/logout→200 {ok:true}✅, reusing same token on /api/copper/dashboard→401✅, reusing on /api/auth/me→401✅ (session fully deleted). (6) Sliding expiry: 3 consecutive /api/auth/me calls all return 200✅ (expiry refreshes on each call). Auth system working correctly. Both X-Session-Token and Authorization: Bearer <token> headers supported.
     - agent: "main"
       message: |
         NEW: Test the authentication system ONLY (do not retest Copper/DKA/KHT business logic beyond a smoke check).
@@ -293,9 +276,6 @@ agent_communication:
         - Soft delete implemented correctly
         
         **Note:** Only the AI-created test record was deleted during testing. All 4 seeded demo records (CU-2026-05-*) remain intact.
-
-
-agent_communication:
     - agent: "main"
       message: |
         User reported "username atau password salah" on login after fresh GitHub import.
@@ -408,3 +388,84 @@ agent_communication:
         The user's reported issue "username atau password salah" has been RESOLVED. The CORS
         misconfiguration fix is working correctly, and users can now log in from a fresh browser
         session without any CORS errors.
+    - agent: "main"
+      message: |
+        NEW TASK: Test the newly restructured navigation flow for the "Laboratorium Product Development" app.
+        The app now has a PUBLIC landing page at "/" and login-protected testing pages.
+        Credentials: username=admin, password=admin123.
+        
+        Please verify these flows:
+        1. PUBLIC LANDING (no login required): Open "/" with CLEARED localStorage (brand new visitor, NOT logged in). VERIFY landing page renders (data-testid="landing-page") WITHOUT redirecting to /login. Must show: title "Laboratorium Product Development", badge "Engine Lubricant Testing • Performance Testing • Product Development • Quality Assurance", "TEST • ANALYZE • INNOVATE • PERFORM" band, "Our Expertise" section with 5 cards (Lubricant Testing, Performance Testing, Product Development, Data & Analysis, Innovation & Automation), quote "Dari Pengujian, Lahir Inovasi...", "Laboratory Modules / Tools Pengujian Pelumas" section with 3 module cards (K-HTT Analyst, Copper Strip ASTM D130, Rating DKA), top-right "Masuk" button (data-testid="nav-signin-btn"), hero "Masuk ke Halaman Pengujian" button (data-testid="hero-enter-btn").
+        
+        2. PROTECTION REDIRECT (while logged OUT): Still logged out, click module card for K-HTT (data-testid="module-card-khtt"). VERIFY it redirects to /login page (login form appears, data-testid="login-form"). Now log in with admin/admin123. VERIFY after login it lands on K-HTT testing page (URL contains /khtt) inside app layout with left sidebar (data-testid="app-sidebar"). This confirms "after login, go to the selected testing page".
+        
+        3. GENERIC SIGN IN + DEFAULT REDIRECT: Logout (find LOGOUT in sidebar, data-testid="logout-button"). After logout should be back at /login or landing. Go to "/" landing again, click top-right "Masuk" button (nav-signin-btn) → should go to /login. Log in with admin/admin123 → should land inside app (URL /khtt) with sidebar.
+        
+        4. TESTING PAGES STILL WORK: While logged in, confirm sidebar shows three modules (K-HTT Analyst, Copper Strip ASTM D130, Rating DKA) and clicking each navigates to its dashboard page without error. Confirm sidebar brand now reads "Laboratorium / Product Development" (NOT "Elastech Production").
+        
+        5. DIRECT PROTECTED URL (logged out): open "/copper-strip" directly while logged out → should redirect to /login.
+        
+        Report pass/fail for each flow, note any console errors, and confirm branding no longer shows "Elastech Production" anywhere.
+    - agent: "testing"
+      message: |
+        ✅ ALL 5 NAVIGATION FLOWS PASSED — RESTRUCTURE COMPLETE
+        
+        Comprehensive testing of the newly restructured navigation flow completed successfully. All flows working correctly.
+        
+        **FLOW 1: PUBLIC LANDING PAGE (no login required) — PASSED**
+        - Cleared localStorage (simulating brand new visitor) ✅
+        - Navigated to "/" → did NOT redirect to /login ✅
+        - Landing page rendered (data-testid="landing-page") ✅
+        - Title "Laboratorium Product Development" present ✅
+        - Badge "Engine Lubricant Testing • Performance Testing • Product Development • Quality Assurance" found ✅
+        - Motto band "TEST • ANALYZE • INNOVATE • PERFORM" found ✅
+        - "Our Expertise" section with 5 expertise cards found ✅
+        - Quote "Dari Pengujian, Lahir Inovasi..." found ✅
+        - "Laboratory Modules / Tools Pengujian Pelumas" section found ✅
+        - All 3 module cards present (K-HTT, Copper Strip, Rating DKA) ✅
+        - Top-right "Masuk" button (nav-signin-btn) found ✅
+        - Hero "Masuk ke Halaman Pengujian" button (hero-enter-btn) found ✅
+        
+        **FLOW 2: PROTECTION REDIRECT (logged out → module card → login → module page) — PASSED**
+        - Clicked K-HTT module card while logged out ✅
+        - Redirected to /login page ✅
+        - Login form appeared (data-testid="login-form") ✅
+        - Logged in with admin/admin123 ✅
+        - Landed on K-HTT testing page (URL contains /khtt) ✅
+        - App sidebar present (data-testid="app-sidebar") ✅
+        - Confirms "after login, go to the selected testing page" ✅
+        
+        **FLOW 3: GENERIC SIGN IN + DEFAULT REDIRECT — PASSED**
+        - Logged out via sidebar LOGOUT button (data-testid="logout-button") ✅
+        - Redirected to /login after logout ✅
+        - Navigated to "/" landing page ✅
+        - Clicked top-right "Masuk" button (nav-signin-btn) ✅
+        - Navigated to /login ✅
+        - Logged in with admin/admin123 ✅
+        - Landed inside app at /khtt (default redirect) ✅
+        - Sidebar present ✅
+        
+        **FLOW 4: TESTING PAGES STILL WORK — PASSED**
+        - K-HTT navigation works (data-testid="nav-khtt") ✅
+        - Copper Strip navigation works (data-testid="nav-copper-strip") ✅
+        - Rating DKA navigation works (data-testid="nav-rating-dka") ✅
+        - Sidebar shows all three modules ✅
+        - Sidebar brand shows "Laboratorium / Product Development" ✅
+        - Old branding "Elastech Production" NOT present ✅
+        
+        **FLOW 5: DIRECT PROTECTED URL (logged out) — PASSED**
+        - Logged out and cleared localStorage ✅
+        - Attempted to access /copper-strip directly while logged out ✅
+        - Redirected to /login (protected route working) ✅
+        - Login form appeared ✅
+        
+        **CONSOLE & NETWORK ANALYSIS:**
+        - ✅ NO CONSOLE ERRORS detected
+        - ✅ NO NETWORK ERRORS detected
+        
+        **BRANDING VERIFICATION:**
+        - ✅ Sidebar shows "Laboratorium / Product Development" (correct)
+        - ✅ Landing page shows "Laboratorium Product Development" (correct)
+        - ✅ Old branding "Elastech Production" NOT present anywhere
+        
+        **SUMMARY:** All navigation flows working correctly. Public landing page accessible without login. Protected routes redirect to /login when accessed without authentication. After login, users are redirected to the originally requested page (or /khtt by default). All three testing modules (K-HTT, Copper Strip, Rating DKA) accessible and functional. Branding successfully updated throughout the app. No console or network errors detected.

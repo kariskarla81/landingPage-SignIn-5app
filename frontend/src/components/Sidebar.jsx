@@ -56,10 +56,10 @@ export const Sidebar = () => {
         </div>
         <div className="leading-tight">
           <div className="font-heading text-lg font-bold tracking-tight text-zinc-50">
-            Elastech
+            Laboratorium
           </div>
           <div className="text-[10px] font-medium uppercase tracking-[0.25em] text-amber-500">
-            Production
+            Product Development
           </div>
         </div>
       </NavLink>
@@ -127,7 +127,7 @@ export const Sidebar = () => {
           v1.0 · Lab Suite
         </div>
         <div className="mt-1 text-xs text-zinc-500">
-          © {new Date().getFullYear()} Elastech Production
+          © {new Date().getFullYear()} Lab Product Development
         </div>
       </div>
     </aside>

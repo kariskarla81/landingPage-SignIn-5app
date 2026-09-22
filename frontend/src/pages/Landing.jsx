@@ -6,23 +6,48 @@ import {
   Beaker,
   Gauge,
   ArrowRight,
-  Cloud,
-  Cpu,
-  Globe,
-  Smartphone,
+  LogIn,
+  Hexagon,
   ShieldCheck,
-  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MODULE_LIST } from "@/config/modules";
 
-const ICONS = { khtt: FlaskConical, "copper-strip": Beaker, "rating-dka": Gauge };
+const HERO_IMG =
+  "https://images.pexels.com/photos/37302633/pexels-photo-37302633.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
+const OIL_IMG =
+  "https://images.unsplash.com/photo-1627436712678-960862eac951?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwxfHxvaWwlMjBhbmFseXNpc3xlbnwwfHx8fDE3OTAwNDgxMzl8MA&ixlib=rb-4.1.0&q=85";
+const SCIENCE_IMG =
+  "https://images.unsplash.com/photo-1630959305606-3123a081dada?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHwxfHxzY2llbmNlJTIwcmVzZWFyY2h8ZW58MHx8fHwxNzkwMDQ4MTM5fDA&ixlib=rb-4.1.0&q=85";
 
-const SERVICES = [
-  { icon: Cloud, label: "SaaS" },
-  { icon: Cpu, label: "IoT" },
-  { icon: Globe, label: "Web App" },
-  { icon: Smartphone, label: "Mobile App" },
+const MODULE_ICONS = { khtt: FlaskConical, "copper-strip": Beaker, "rating-dka": Gauge };
+
+const EXPERTISE = [
+  {
+    emoji: "🔬",
+    title: "Lubricant Testing",
+    desc: "Pengujian berbagai karakteristik fisik dan kimia pelumas untuk memastikan kesesuaian terhadap spesifikasi dan standar yang berlaku.",
+  },
+  {
+    emoji: "⚙️",
+    title: "Performance Testing",
+    desc: "Evaluasi performa pelumas melalui berbagai pengujian simulasi dan performance test untuk mengetahui kemampuan pelumas dalam melindungi dan mendukung kinerja mesin.",
+  },
+  {
+    emoji: "🧪",
+    title: "Product Development",
+    desc: "Mendukung proses formulasi dan pengembangan produk melalui data hasil pengujian laboratorium yang akurat dan dapat dipertanggungjawabkan.",
+  },
+  {
+    emoji: "📊",
+    title: "Data & Analysis",
+    desc: "Menghasilkan data pengujian yang terukur sebagai dasar pengambilan keputusan dalam pengembangan dan peningkatan kualitas produk.",
+  },
+  {
+    emoji: "🚀",
+    title: "Innovation & Automation",
+    desc: "Mengembangkan teknologi otomasi dan digitalisasi laboratorium untuk meningkatkan efisiensi, akurasi, traceability, dan produktivitas pengujian.",
+  },
 ];
 
 const fade = {
@@ -30,7 +55,7 @@ const fade = {
   show: (i) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: i * 0.08, ease: "easeOut" },
+    transition: { duration: 0.5, delay: i * 0.07, ease: "easeOut" },
   }),
 };
 
@@ -38,19 +63,40 @@ export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <div data-testid="landing-page" className="relative">
+    <div data-testid="landing-page" className="min-h-screen bg-zinc-950 text-zinc-50">
+      {/* Top navigation */}
+      <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-amber-500">
+              <Hexagon className="h-5 w-5 text-zinc-950" strokeWidth={2.5} />
+            </div>
+            <div className="leading-tight">
+              <div className="font-heading text-sm font-bold tracking-tight text-zinc-50">
+                Laboratorium
+              </div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-amber-500">
+                Product Development
+              </div>
+            </div>
+          </div>
+          <Button
+            data-testid="nav-signin-btn"
+            onClick={() => navigate("/login")}
+            className="rounded-md bg-amber-500 font-medium text-zinc-950 hover:bg-amber-400"
+          >
+            <LogIn className="mr-2 h-4 w-4" /> Masuk
+          </Button>
+        </div>
+      </header>
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-zinc-800">
         <div
-          className="absolute inset-0 opacity-[0.18]"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1695668548342-c0c1ad479aee?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
+          className="absolute inset-0 opacity-[0.16]"
+          style={{ backgroundImage: `url('${HERO_IMG}')`, backgroundSize: "cover", backgroundPosition: "center" }}
         />
-        <div className="absolute inset-0 bg-zinc-950/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/85 via-zinc-950/80 to-zinc-950" />
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
@@ -60,144 +106,236 @@ export default function Landing() {
           }}
         />
 
-        <div className="relative mx-auto max-w-7xl px-6 py-24 lg:px-10 lg:py-32">
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fade}
-            custom={0}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/70 px-4 py-1.5 text-xs font-medium tracking-wide text-zinc-400"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            Petroleum Laboratory Technology
-          </motion.div>
-
-          <motion.h1
-            initial="hidden"
-            animate="show"
-            variants={fade}
-            custom={1}
-            className="font-heading mt-6 max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight text-zinc-50"
-          >
-            Elastech <span className="text-amber-500">Production</span>
-          </motion.h1>
-
-          <motion.p
-            initial="hidden"
-            animate="show"
-            variants={fade}
-            custom={2}
-            className="mt-5 max-w-xl text-base leading-relaxed text-zinc-400"
-          >
-            Perusahaan teknologi yang membangun solusi digital end-to-end —
-            dari platform SaaS hingga perangkat IoT — serta menghadirkan suite
-            perangkat lunak pengujian laboratorium minyak bumi yang presisi dan
-            cerdas.
-          </motion.p>
-
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fade}
-            custom={3}
-            className="mt-8 flex flex-wrap gap-3"
-          >
-            {SERVICES.map((s) => (
-              <div
-                key={s.label}
-                className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-sm font-medium text-zinc-300"
-              >
-                <s.icon className="h-4 w-4 text-amber-500" />
-                {s.label}
-              </div>
-            ))}
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fade}
-            custom={4}
-            className="mt-10"
-          >
-            <Button
-              data-testid="hero-explore-btn"
-              onClick={() => navigate("/khtt")}
-              className="rounded-md bg-amber-500 font-medium text-zinc-950 hover:bg-amber-400"
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:px-10 lg:py-28">
+          <div>
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={fade}
+              custom={0}
+              className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/70 px-4 py-1.5 text-[11px] font-medium tracking-wide text-zinc-400"
             >
-              Buka Lab Suite
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              Engine Lubricant Testing • Performance Testing • Product Development • Quality Assurance
+            </motion.div>
+
+            <motion.h1
+              initial="hidden"
+              animate="show"
+              variants={fade}
+              custom={1}
+              className="font-heading mt-6 text-4xl font-bold leading-[1.08] tracking-tight text-zinc-50 lg:text-5xl"
+            >
+              Laboratorium <span className="text-amber-500">Product Development</span>
+            </motion.h1>
+
+            <motion.p
+              initial="hidden"
+              animate="show"
+              variants={fade}
+              custom={2}
+              className="mt-5 max-w-xl text-base leading-relaxed text-zinc-300"
+            >
+              Laboratorium Product Development menghadirkan pengujian dan evaluasi performa
+              pelumas secara komprehensif untuk memastikan setiap formulasi memenuhi standar
+              kualitas, keandalan, dan kebutuhan aplikasi mesin.
+            </motion.p>
+
+            <motion.p
+              initial="hidden"
+              animate="show"
+              variants={fade}
+              custom={3}
+              className="mt-4 max-w-xl text-sm font-medium italic leading-relaxed text-amber-400/90"
+            >
+              Menguji dengan presisi. Mengembangkan dengan inovasi. Menghasilkan pelumas berkualitas.
+            </motion.p>
+
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={fade}
+              custom={4}
+              className="mt-8 flex flex-wrap gap-3"
+            >
+              <Button
+                data-testid="hero-enter-btn"
+                onClick={() => navigate("/khtt")}
+                className="rounded-md bg-amber-500 font-medium text-zinc-950 hover:bg-amber-400"
+              >
+                Masuk ke Halaman Pengujian
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button
+                data-testid="hero-signin-btn"
+                variant="secondary"
+                onClick={() => navigate("/login")}
+                className="rounded-md border border-zinc-700 bg-zinc-900 font-medium text-zinc-100 hover:bg-zinc-800"
+              >
+                <LogIn className="mr-2 h-4 w-4" /> Sign In
+              </Button>
+            </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="relative hidden lg:block"
+          >
+            <div className="overflow-hidden rounded-2xl border border-zinc-800 shadow-2xl shadow-black/40">
+              <img src={HERO_IMG} alt="Pengujian laboratorium pelumas" className="h-[420px] w-full object-cover" />
+            </div>
+            <div className="pointer-events-none absolute -inset-2 -z-10 rounded-3xl bg-amber-500/10 blur-2xl" />
+          </motion.div>
+        </div>
+
+        {/* Intro paragraph */}
+        <div className="relative mx-auto max-w-4xl px-6 pb-20 lg:px-10">
+          <p className="text-center text-sm leading-relaxed text-zinc-400">
+            Kami melakukan pengujian karakteristik, performa, dan ketahanan pelumas melalui metode
+            pengujian yang terstandar dan terukur. Setiap hasil pengujian menjadi dasar dalam
+            pengembangan produk pelumas yang berkualitas, konsisten, dan sesuai dengan kebutuhan
+            aplikasi mesin.
+          </p>
+        </div>
+      </section>
+
+      {/* Motto band */}
+      <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-900/40">
+        <div
+          className="absolute inset-0 opacity-[0.10]"
+          style={{ backgroundImage: `url('${OIL_IMG}')`, backgroundSize: "cover", backgroundPosition: "center" }}
+        />
+        <div className="relative mx-auto max-w-5xl px-6 py-16 text-center lg:px-10">
+          <div className="font-heading text-2xl font-bold tracking-[0.15em] text-amber-500 lg:text-3xl">
+            TEST • ANALYZE • INNOVATE • PERFORM
+          </div>
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-zinc-300">
+            Mengembangkan pelumas berkualitas melalui pengujian yang akurat, analisis data yang
+            terukur, dan performance testing yang komprehensif.
+          </p>
+          <p className="mt-4 text-sm font-medium italic text-zinc-400">
+            Driving Lubricant Innovation Through Science &amp; Technology.
+          </p>
+        </div>
+      </section>
+
+      {/* Our Expertise */}
+      <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+        <div className="mb-10 text-center">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-amber-500">
+            Our Expertise
+          </div>
+          <h2 className="font-heading mt-2 text-2xl font-bold tracking-tight text-zinc-50 lg:text-3xl">
+            Kompetensi Pengujian &amp; Pengembangan
+          </h2>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {EXPERTISE.map((e, i) => (
+            <motion.div
+              key={e.title}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              variants={fade}
+              custom={i}
+              data-testid={`expertise-card-${i}`}
+              className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 transition-colors duration-200 hover:border-amber-500/40 hover:bg-zinc-900/70"
+            >
+              <div className="text-3xl">{e.emoji}</div>
+              <h3 className="font-heading mt-4 text-lg font-semibold tracking-tight text-zinc-50">
+                {e.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{e.desc}</p>
+            </motion.div>
+          ))}
+
+          {/* Quote card fills the 6th slot on lg */}
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            variants={fade}
+            custom={EXPERTISE.length}
+            className="flex flex-col justify-center rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-zinc-900/40 p-6"
+          >
+            <p className="font-heading text-lg font-semibold leading-relaxed text-amber-300">
+              “Dari Pengujian, Lahir Inovasi. Dari Inovasi, Tercipta Pelumas Berkualitas.”
+            </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Modules */}
-      <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
-        <div className="mb-8 flex items-end justify-between">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-500">
-              Laboratory Modules
+      {/* Testing modules */}
+      <section className="border-t border-zinc-800 bg-zinc-900/30">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-amber-500">
+                Laboratory Modules
+              </div>
+              <h2 className="font-heading mt-2 text-2xl font-bold tracking-tight text-zinc-50 lg:text-3xl">
+                Tools Pengujian Pelumas
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+                Pilih modul pengujian. Anda akan diminta masuk (Sign In) terlebih dahulu sebelum
+                mengakses halaman pengujian.
+              </p>
             </div>
-            <h2 className="font-heading mt-2 text-2xl font-bold tracking-tight text-zinc-50 lg:text-3xl">
-              Tools Pengujian Minyak Bumi
-            </h2>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {MODULE_LIST.map((m, i) => {
+              const Icon = MODULE_ICONS[m.slug] || FlaskConical;
+              return (
+                <motion.button
+                  key={m.slug}
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true }}
+                  variants={fade}
+                  custom={i}
+                  data-testid={`module-card-${m.slug}`}
+                  onClick={() => navigate(`/${m.slug}`)}
+                  className="group flex flex-col rounded-xl border border-zinc-800 bg-zinc-950/60 p-6 text-left transition-colors duration-200 hover:border-amber-500/40 hover:bg-zinc-900/70"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-md border border-zinc-800 bg-zinc-950 text-amber-500 transition-colors duration-200 group-hover:border-amber-500/40">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="font-heading mt-5 text-lg font-semibold tracking-tight text-zinc-50">
+                    {m.title}
+                  </h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
+                    {m.description}
+                  </p>
+                  <div className="mt-5 flex items-center gap-2 text-sm font-medium text-amber-500">
+                    <ShieldCheck className="h-4 w-4" />
+                    Sign In &amp; Mulai
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
         </div>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {MODULE_LIST.map((m, i) => {
-            const Icon = ICONS[m.slug];
-            return (
-              <motion.button
-                key={m.slug}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true }}
-                variants={fade}
-                custom={i}
-                data-testid={`module-card-${m.slug}`}
-                onClick={() => navigate(`/${m.slug}`)}
-                className="group flex flex-col rounded-lg border border-zinc-800 bg-zinc-900/40 p-6 text-left transition-colors duration-200 hover:border-amber-500/40 hover:bg-zinc-900/70"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-md border border-zinc-800 bg-zinc-950 text-amber-500 transition-colors duration-200 group-hover:border-amber-500/40">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h3 className="font-heading mt-5 text-lg font-semibold tracking-tight text-zinc-50">
-                  {m.title}
-                </h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
-                  {m.description}
-                </p>
-                <div className="mt-5 flex items-center gap-2 text-sm font-medium text-amber-500">
-                  Mulai Pengujian
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {/* Feature strip */}
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {[
-            { icon: Activity, title: "Input & Rating", desc: "Form data sampel dan penilaian rating sesuai standar uji." },
-            { icon: Cpu, title: "Analisa AI", desc: "Interpretasi hasil otomatis oleh AI ahli laboratorium." },
-            { icon: ShieldCheck, title: "Export PDF", desc: "Laporan pengujian profesional siap cetak & arsip." },
-          ].map((f, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-6"
-            >
-              <f.icon className="h-5 w-5 text-zinc-500" />
-              <div className="font-heading mt-4 text-base font-semibold text-zinc-100">
-                {f.title}
-              </div>
-              <p className="mt-1.5 text-sm text-zinc-400">{f.desc}</p>
-            </div>
-          ))}
-        </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-800 bg-zinc-950">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row lg:px-10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-amber-500">
+              <Hexagon className="h-5 w-5 text-zinc-950" strokeWidth={2.5} />
+            </div>
+            <div className="text-sm font-semibold text-zinc-200">Laboratorium Product Development</div>
+          </div>
+          <div className="text-xs text-zinc-500">
+            © {new Date().getFullYear()} Laboratorium Product Development · Authorized personnel only
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -21,7 +21,7 @@ export const Layout = () => {
           <div className="flex h-8 w-8 items-center justify-center rounded bg-amber-500">
             <Hexagon className="h-5 w-5 text-zinc-950" strokeWidth={2.5} />
           </div>
-          <span className="font-heading font-bold">Elastech Production</span>
+          <span className="font-heading font-bold">Laboratorium Product Development</span>
         </NavLink>
         <button
           data-testid="mobile-menu-toggle"
