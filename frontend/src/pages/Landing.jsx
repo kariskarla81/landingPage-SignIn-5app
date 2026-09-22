@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MODULE_LIST } from "@/config/modules";
+import heroLab from "@/assets/hero-lab.png";
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1606206873764-fd15e242df52?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwyfHxpbmR1c3RyaWFsJTIwdGVzdGluZ3xlbnwwfHx8fDE3OTAwNDkzNTJ8MA&ixlib=rb-4.1.0&q=85";
+const HERO_IMG = heroLab;
 const OIL_IMG =
   "https://images.unsplash.com/photo-1627436712678-960862eac951?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwxfHxvaWwlMjBhbmFseXNpc3xlbnwwfHx8fDE3OTAwNDgxMzl8MA&ixlib=rb-4.1.0&q=85";
 const SCIENCE_IMG =
@@ -159,7 +159,7 @@ export default function Landing() {
             className="relative hidden lg:block"
           >
             <div className="overflow-hidden rounded-2xl border border-zinc-800 shadow-2xl shadow-black/40">
-              <img src={HERO_IMG} alt="Alat uji HFRR pelumas — instrumen laboratorium canggih" className="h-[420px] w-full object-cover" />
+              <img src={HERO_IMG} alt="Instrumen uji laboratorium pelumas (DSC analyzer)" className="h-[420px] w-full object-cover" />
             </div>
             <div className="pointer-events-none absolute -inset-2 -z-10 rounded-3xl bg-amber-500/10 blur-2xl" />
           </motion.div>
