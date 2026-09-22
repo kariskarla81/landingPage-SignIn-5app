@@ -52,12 +52,20 @@ export default function Login() {
       </div>
 
       <div className="relative w-full max-w-[400px]">
-        {/* Brand */}
+        {/* Brand — clickable, returns to landing/home */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cyan-500 shadow-lg shadow-cyan-500/20">
-            <Hexagon className="h-8 w-8 text-zinc-950" strokeWidth={2.5} />
-          </div>
-          <h1 className="font-heading mt-4 text-xl font-bold leading-snug tracking-tight text-zinc-50">Laboratorium Product Development</h1>
+          <button
+            type="button"
+            data-testid="login-brand-home"
+            onClick={() => navigate("/")}
+            aria-label="Kembali ke Beranda"
+            className="group flex flex-col items-center rounded-xl outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+          >
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cyan-500 shadow-lg shadow-cyan-500/20 transition-transform duration-200 group-hover:scale-105">
+              <Hexagon className="h-8 w-8 text-zinc-950" strokeWidth={2.5} />
+            </div>
+            <h1 className="font-heading mt-4 text-xl font-bold leading-snug tracking-tight text-zinc-50 transition-colors group-hover:text-cyan-300">Laboratorium Product Development</h1>
+          </button>
           <p className="mt-1 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-400">
             <ShieldCheck className="h-3.5 w-3.5" /> Internal Access
           </p>
