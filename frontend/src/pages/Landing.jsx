@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { MODULE_LIST } from "@/config/modules";
 import heroLab from "@/assets/hero-lab.png";
-import tbsSimulator from "@/assets/tbs-simulator.jpg";
+import mottoBanner from "@/assets/motto-banner.jpg";
 
 const HERO_IMG = heroLab;
 
@@ -161,75 +161,25 @@ export default function Landing() {
             <div className="pointer-events-none absolute -inset-2 -z-10 rounded-3xl bg-amber-500/10 blur-2xl" />
           </motion.div>
         </div>
-
-        {/* Intro paragraph */}
-        <div className="relative mx-auto max-w-4xl px-6 pb-20 lg:px-10">
-          <p className="text-center text-sm leading-relaxed text-zinc-400">
-            Kami melakukan pengujian karakteristik, performa, dan ketahanan pelumas melalui metode
-            pengujian yang terstandar dan terukur. Setiap hasil pengujian menjadi dasar dalam
-            pengembangan produk pelumas yang berkualitas, konsisten, dan sesuai dengan kebutuhan
-            aplikasi mesin.
-          </p>
-        </div>
       </section>
 
-      {/* Motto band */}
-      <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-900/40">
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              "linear-gradient(#71717a 1px, transparent 1px), linear-gradient(90deg, #71717a 1px, transparent 1px)",
-            backgroundSize: "44px 44px",
-          }}
-        />
-        <div className="pointer-events-none absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-amber-500/10 blur-3xl" />
-
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-20 lg:grid-cols-2 lg:px-10">
-          {/* Instrument image */}
+      {/* Motto banner */}
+      <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-10 lg:py-20">
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="relative order-2 lg:order-1"
+            className="group relative overflow-hidden rounded-2xl border border-zinc-800 shadow-2xl shadow-black/50"
           >
-            <div className="group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/40">
-              <img
-                src={tbsSimulator}
-                alt="Tapered Bearing Simulator TBS 2100E — pengujian viskositas HTHS pelumas"
-                className="h-[300px] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] lg:h-[360px]"
-              />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/85 via-zinc-950/10 to-zinc-950/20" />
-              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/5" />
-              <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-lg border border-zinc-700/70 bg-zinc-950/80 px-3 py-1.5 backdrop-blur">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-                <span className="font-mono text-[11px] tracking-wide text-zinc-200">
-                  Tapered Bearing Simulator · TBS 2100E
-                </span>
-              </div>
-            </div>
-            <div className="pointer-events-none absolute -inset-2 -z-10 rounded-3xl bg-amber-500/10 blur-2xl" />
-          </motion.div>
-
-          {/* Motto text */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="order-1 text-center lg:order-2 lg:text-left"
-          >
-            <div className="font-heading text-2xl font-bold tracking-[0.15em] text-amber-500 lg:text-3xl">
-              TEST • ANALYZE • INNOVATE • PERFORM
-            </div>
-            <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-zinc-300 lg:mx-0">
-              Mengembangkan pelumas berkualitas melalui pengujian yang akurat, analisis data yang
-              terukur, dan performance testing yang komprehensif.
-            </p>
-            <p className="mt-4 text-sm font-medium italic text-zinc-400">
-              Driving Lubricant Innovation Through Science &amp; Technology.
-            </p>
+            <img
+              src={mottoBanner}
+              alt="TEST • ANALYZE • INNOVATE • PERFORM — Mengembangkan pelumas berkualitas melalui pengujian yang akurat, analisis data yang terukur, dan performance testing yang komprehensif. Driving Lubricant Innovation Through Science & Technology."
+              className="w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+            />
+            <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/5" />
           </motion.div>
         </div>
       </section>
