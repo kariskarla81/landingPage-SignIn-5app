@@ -150,31 +150,6 @@ export default function Landing() {
             >
               Menguji dengan presisi. Mengembangkan dengan inovasi. Menghasilkan pelumas berkualitas.
             </motion.p>
-
-            <motion.div
-              initial="hidden"
-              animate="show"
-              variants={fade}
-              custom={4}
-              className="mt-8 flex flex-wrap gap-3"
-            >
-              <Button
-                data-testid="hero-enter-btn"
-                onClick={() => navigate("/khtt")}
-                className="rounded-md bg-amber-500 font-medium text-zinc-950 hover:bg-amber-400"
-              >
-                Masuk ke Halaman Pengujian
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button
-                data-testid="hero-signin-btn"
-                variant="secondary"
-                onClick={() => navigate("/login")}
-                className="rounded-md border border-zinc-700 bg-zinc-900 font-medium text-zinc-100 hover:bg-zinc-800"
-              >
-                <LogIn className="mr-2 h-4 w-4" /> Sign In
-              </Button>
-            </motion.div>
           </div>
 
           <motion.div
