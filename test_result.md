@@ -132,6 +132,15 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ PASSWORD RESET VERIFIED — ALL 9 TESTS PASSED. (1) Login with admin/admin123→200 {token,username:admin,ttl_minutes:60}✅. (2) Login with wrong password→401 'Username atau password salah'✅. (3) Login with old password 'Elastech@2026'→401 (correctly rejected)✅. (4) GET /api/auth/me with valid token→200 {username:admin,ttl_minutes:60}✅. (5) GET /api/auth/me without token→401✅. (6) GET /api/copper/tests without token→401 'Tidak terautentikasi. Silakan login.'✅. (7) GET /api/copper/tests with valid token→200 (4 records)✅. (8) POST /api/auth/logout→200 {ok:true}✅. (9) GET /api/auth/me with invalidated token→401✅. Password reset successful. New credentials working correctly. Old password properly rejected. All auth flows functional."
+        - working: false
+          agent: "user"
+          comment: "User reported 'username atau password salah' and could not log in. CORS misconfiguration suspected (preflight returning wrong Access-Control-Allow-Origin)."
+        - working: true
+          agent: "main"
+          comment: "Fixed CORS misconfiguration. Updated CORS settings to properly handle preflight requests and return correct Access-Control-Allow-Origin header."
+        - working: true
+          agent: "testing"
+          comment: "✅ BROWSER LOGIN FLOW & CORS FIX VERIFIED — ALL TESTS PASSED. Comprehensive end-to-end browser testing from fresh session completed. (1) Fresh session redirect: cleared localStorage→navigated to root→redirected to /login✅, login page rendered with all elements✅. (2) Negative case (wrong password): admin/wrongpassword→401✅, error message 'Username atau password salah' displayed✅, remained on login page✅, CORS header present in 401 response✅. (3) Positive case (correct credentials): admin/admin123→200 OK✅, redirected to dashboard✅, session token stored in localStorage (43 chars)✅, CORS header present in 200 response✅. (4) Dashboard verification: landing page rendered✅, sidebar visible with all module links (K-HTT Analyst, Copper Strip ASTM D130, Rating DKA)✅, username 'admin' displayed✅, LOGOUT button present and functional✅. (5) Logout: clicked LOGOUT→redirected to /login✅, token cleared from localStorage✅. (6) CORS & Network analysis: NO CORS ERRORS in browser console✅, Access-Control-Allow-Origin header present in all /api/auth/login responses✅, both 401 and 200 responses include proper CORS headers✅. FINAL VERDICT: Login flow working correctly end-to-end, CORS fix verified, no CORS errors detected, authentication successful with admin/admin123, error handling working, dashboard renders correctly, logout functional. User's reported issue RESOLVED."
   - task: "Copper Strip AI Vision analyze job (start + polling) — /api/copper/analyze/start & jobs/{id}"
     implemented: true
     working: true
@@ -329,3 +338,73 @@ agent_communication:
         **Summary:** Password reset successful. New credentials (admin/admin123) working correctly.
         Old password (Elastech@2026) properly rejected. All auth flows functional. User can now login
         with the new standard trial credentials.
+    - agent: "main"
+      message: |
+        User reported "username atau password salah" after fresh GitHub import. CORS misconfiguration
+        was identified (preflight returning wrong Access-Control-Allow-Origin). Fixed CORS settings.
+        Please verify the FULL BROWSER LOGIN FLOW from a fresh session:
+          1. Clear localStorage, navigate to app → should redirect to /login
+          2. Login with admin/admin123 → should succeed and redirect to dashboard
+          3. Verify dashboard shows sidebar with "admin / ADMINISTRATOR" and LOGOUT button
+          4. Test negative case: wrong password should show "Username atau password salah"
+          5. Monitor browser console for CORS errors on /api/auth/login
+          6. Check network tab for proper CORS headers in response
+    - agent: "testing"
+      message: |
+        ✅ BROWSER LOGIN FLOW & CORS FIX VERIFICATION COMPLETE — ALL TESTS PASSED
+        
+        Comprehensive end-to-end browser testing completed from fresh session. CORS fix verified successfully.
+        
+        **Test Results:**
+        
+        **1. Fresh Session Redirect (PASSED):**
+        - Cleared localStorage to simulate fresh user ✅
+        - Navigated to app root → correctly redirected to /login ✅
+        - Login page rendered with all elements (username, password, MASUK button) ✅
+        
+        **2. Negative Case - Wrong Password (PASSED):**
+        - Entered admin/wrongpassword ✅
+        - POST /api/auth/login → 401 Unauthorized ✅
+        - Error message displayed: "Username atau password salah" ✅
+        - Remained on login page (correct behavior) ✅
+        - CORS header present: Access-Control-Allow-Origin = https://4838f29c-c60d-4353-92bc-e0ae16a124eb.cluster-5.preview.emergentcf.cloud ✅
+        
+        **3. Positive Case - Correct Credentials (PASSED):**
+        - Entered admin/admin123 ✅
+        - POST /api/auth/login → 200 OK ✅
+        - Redirected to dashboard (/) ✅
+        - Session token stored in localStorage (43 chars) ✅
+        - CORS header present in successful response ✅
+        
+        **4. Dashboard Verification (PASSED):**
+        - Landing page rendered correctly ✅
+        - Sidebar visible with all module links:
+          • K-HTT Analyst ✅
+          • Copper Strip ASTM D130 ✅
+          • Rating DKA ✅
+        - Username displayed in sidebar: "admin" ✅
+        - Administrator role shown ✅
+        - LOGOUT button present and functional ✅
+        
+        **5. Logout Functionality (PASSED):**
+        - Clicked LOGOUT button ✅
+        - Redirected to /login ✅
+        - Session token cleared from localStorage ✅
+        
+        **6. CORS & Network Analysis (PASSED):**
+        - ✅ NO CORS ERRORS detected in browser console
+        - ✅ Access-Control-Allow-Origin header present in all /api/auth/login responses
+        - ✅ Both 401 (wrong password) and 200 (correct login) responses include proper CORS headers
+        - Network requests: 2 login attempts (1 failed, 1 succeeded) - both handled correctly
+        
+        **FINAL VERDICT:**
+        ✅ LOGIN FLOW WORKING CORRECTLY END-TO-END
+        ✅ CORS FIX VERIFIED - No CORS errors in browser console
+        ✅ Authentication successful with admin/admin123
+        ✅ Error handling working (wrong password shows correct error)
+        ✅ Dashboard renders with all expected elements
+        ✅ Logout functionality working correctly
+        
+        The user's reported issue "username atau password salah" has been RESOLVED. The CORS
+        misconfiguration fix is working correctly, and users can now log in from a fresh browser
+        session without any CORS errors.

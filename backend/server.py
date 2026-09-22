@@ -1775,10 +1775,16 @@ async def auth_guard(request: Request, call_next):
     return await call_next(request)
 
 
+_cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')
+# The app authenticates via the X-Session-Token header (not cookies), so it does
+# NOT need credentialed CORS. Using allow_credentials=True together with "*" makes
+# the browser reject responses and causes the preflight to reflect a proxy-rewritten
+# Origin. When origins are "*", disable credentials so ACAO is a stable "*".
+_allow_credentials = "*" not in _cors_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=_allow_credentials,
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
