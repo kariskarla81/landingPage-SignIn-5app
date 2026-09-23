@@ -64,7 +64,7 @@ export default function Landing() {
     <div data-testid="landing-page" className="min-h-screen bg-zinc-950 text-zinc-50">
       {/* Top navigation */}
       <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
+        <div className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-amber-500">
               <Hexagon className="h-5 w-5 text-zinc-950" strokeWidth={2.5} />
@@ -77,6 +77,12 @@ export default function Landing() {
                 Product Development
               </div>
             </div>
+          </div>
+          <div className="pointer-events-none absolute left-1/2 hidden max-w-2xl -translate-x-1/2 px-4 text-center lg:block">
+            <p className="text-xs font-medium italic tracking-wide text-zinc-300 xl:text-sm">
+              Dari Pengujian, Lahir Inovasi.{" "}
+              <span className="text-amber-400">Dari Inovasi, Tercipta Pelumas Berkualitas.</span>
+            </p>
           </div>
           <Button
             data-testid="nav-signin-btn"
