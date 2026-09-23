@@ -3,7 +3,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://elastech-homepage.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://signin-landing.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
 MODULES = ["khtt", "copper-strip", "rating-dka"]
