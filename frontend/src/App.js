@@ -28,6 +28,10 @@ import CopperHistory from "@/pages/copper/History";
 import CopperTrend from "@/pages/copper/Trend";
 import CopperResult from "@/pages/copper/Result";
 import CopperScale from "@/pages/copper/Scale";
+import HtcbtLayout from "@/pages/htcbt/HtcbtLayout";
+import HtcbtMonitor from "@/pages/htcbt/Monitor";
+import HtcbtNewSample from "@/pages/htcbt/NewSample";
+import HtcbtHistory from "@/pages/htcbt/History";
 
 function App() {
   return (
@@ -63,6 +67,11 @@ function App() {
               </Route>
               <Route path="/copper-strip/result/:id" element={<CopperResult />} />
               <Route path="/copper-strip/scale" element={<CopperScale />} />
+              <Route path="/htcbt" element={<HtcbtLayout />}>
+                <Route index element={<HtcbtMonitor />} />
+                <Route path="new" element={<HtcbtNewSample />} />
+                <Route path="history" element={<HtcbtHistory />} />
+              </Route>
               <Route path="/:module" element={<ModulePage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

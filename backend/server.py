@@ -1749,6 +1749,331 @@ async def seed_kht():
         await db.tests.insert_one(rec_dict)
 
 
+# ===========================================================================
+# HTCBT — ASTM D6594 (High Temperature Corrosion Bench Test)
+# Monitoring module: handwritten-label OCR (AI Vision) + persistent countdown timer.
+# One active run at a time; a run batches up to 4 samples sharing one countdown.
+# ===========================================================================
+
+HTCBT_METHODS = [
+    {"code": "A", "label": "Metode A · 168 jam @ 135°C", "duration_hours": 168, "temperature_c": 135},
+    {"code": "B", "label": "Metode B · 312 jam @ 121°C", "duration_hours": 312, "temperature_c": 121},
+]
+HTCBT_MAX_SAMPLES = 4
+
+
+def _htcbt_method_for(temperature_c, duration_hours):
+    """Best-effort match of OCR values to one of the two standard methods."""
+    try:
+        dur = float(duration_hours) if duration_hours is not None else None
+    except (TypeError, ValueError):
+        dur = None
+    try:
+        temp = float(temperature_c) if temperature_c is not None else None
+    except (TypeError, ValueError):
+        temp = None
+    # duration is the strongest signal
+    if dur is not None:
+        for m in HTCBT_METHODS:
+            if abs(dur - m["duration_hours"]) <= 24:
+                return m
+    if temp is not None:
+        for m in HTCBT_METHODS:
+            if abs(temp - m["temperature_c"]) <= 5:
+                return m
+    return None
+
+
+HTCBT_OCR_PROMPT = (
+    "You are an OCR and data-extraction engine reading a HANDWRITTEN laboratory sample "
+    "label for an HTCBT test (High Temperature Corrosion Bench Test, ASTM D6594).\n"
+    "Carefully read the handwriting on the label in the image and extract:\n"
+    "- sample_code: the sample identifier / code exactly as written (string). Keep letters, "
+    "digits and separators.\n"
+    "- temperature_c: the test temperature in degrees Celsius as a NUMBER only (e.g. 135 or 121). "
+    "null if not present.\n"
+    "- duration_hours: the test duration in HOURS as a NUMBER only. If written as '168 jam' or "
+    "'168 h' return 168; if '312 jam' return 312. null if not present.\n\n"
+    "Common valid combinations are 168 hours at 135C, and 312 hours at 121C.\n\n"
+    "Return ONLY a valid minified JSON object (no markdown) with EXACTLY these keys:\n"
+    '{"sample_code": <string>, "temperature_c": <number or null>, '
+    '"duration_hours": <number or null>, "raw_text": <all text you can read from the label>}'
+)
+
+
+async def run_htcbt_ocr(image_b64: str) -> dict:
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"htcbt-{uuid.uuid4()}",
+        system_message="You are a precise handwriting OCR model that only outputs JSON.",
+    ).with_model("gemini", "gemini-3.1-pro-preview")
+    resp = await chat.send_message(
+        UserMessage(text=HTCBT_OCR_PROMPT, file_contents=[ImageContent(image_base64=image_b64)])
+    )
+    return _parse_ai_json(resp if isinstance(resp, str) else str(resp))
+
+
+class HtcbtSample(BaseModel):
+    sample_code: str
+    added_at: str = Field(default_factory=now_iso)
+
+
+class HtcbtRun(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    method_code: str = ""
+    method_label: str = ""
+    temperature_c: float = 0
+    duration_hours: float = 0
+    samples: List[HtcbtSample] = Field(default_factory=list)
+    operator: str = ""
+    notes: str = ""
+    image_path: Optional[str] = None
+    ocr_raw: str = ""
+    start_at: str = Field(default_factory=now_iso)
+    finish_at: str = ""
+    status: str = "running"  # running | done | stopped
+    acknowledged: bool = False
+    created_at: str = Field(default_factory=now_iso)
+    deleted_at: Optional[str] = None
+
+
+class HtcbtOcrRequest(BaseModel):
+    image_path: str
+
+
+class HtcbtSubmitRequest(BaseModel):
+    sample_code: str
+    temperature_c: Optional[float] = None
+    duration_hours: Optional[float] = None
+    method_code: Optional[str] = None
+    operator: str = ""
+    notes: str = ""
+    image_path: Optional[str] = None
+    ocr_raw: str = ""
+
+
+def _parse_iso(s: str) -> datetime:
+    try:
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return datetime.now(timezone.utc)
+
+
+def _htcbt_public(doc: dict) -> dict:
+    """Enrich a run document with live countdown fields."""
+    doc = {k: v for k, v in doc.items() if k != "_id"}
+    now = datetime.now(timezone.utc)
+    finish = _parse_iso(doc.get("finish_at") or now.isoformat())
+    start = _parse_iso(doc.get("start_at") or now.isoformat())
+    remaining = int((finish - now).total_seconds())
+    total = int((finish - start).total_seconds()) or 1
+    time_up = now >= finish
+    doc["remaining_seconds"] = max(0, remaining)
+    doc["elapsed_seconds"] = max(0, int((now - start).total_seconds()))
+    doc["total_seconds"] = total
+    doc["progress_pct"] = min(100, max(0, round((total - max(0, remaining)) / total * 100, 1)))
+    # A run whose time has elapsed but is still "running" is reported as time_up
+    doc["time_up"] = bool(time_up and doc.get("status") == "running")
+    doc["is_active"] = doc.get("status") == "running"
+    return doc
+
+
+async def _htcbt_active_doc() -> Optional[dict]:
+    return await db.htcbt_runs.find_one(
+        {"status": "running", "deleted_at": None}, sort=[("created_at", -1)]
+    )
+
+
+class HtcbtOcrJob(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    status: str = "running"  # running | done | error
+    result: Optional[dict] = None
+    error: Optional[str] = None
+    created_at: str = Field(default_factory=now_iso)
+    finished_at: Optional[str] = None
+
+
+async def _run_htcbt_ocr_job(job_id: str, image_path: str):
+    try:
+        content, _ = await run_in_threadpool(get_object, image_path)
+        small = await run_in_threadpool(_downscale_for_ai, content)
+        b64 = base64.b64encode(small).decode("utf-8")
+        ai = await run_htcbt_ocr(b64)
+        method = _htcbt_method_for(ai.get("temperature_c"), ai.get("duration_hours"))
+        result = {
+            "sample_code": str(ai.get("sample_code") or "").strip(),
+            "temperature_c": ai.get("temperature_c"),
+            "duration_hours": ai.get("duration_hours"),
+            "raw_text": str(ai.get("raw_text") or ""),
+            "method_code": method["code"] if method else "",
+            "method_label": method["label"] if method else "",
+        }
+        await db.htcbt_ocr_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "done", "result": result, "finished_at": now_iso()}},
+        )
+    except Exception as e:
+        logger.exception("HTCBT OCR job failed")
+        await db.htcbt_ocr_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "error", "error": str(e), "finished_at": now_iso()}},
+        )
+
+
+@api_router.post("/htcbt/ocr/start", response_model=HtcbtOcrJob)
+async def htcbt_ocr_start(req: HtcbtOcrRequest):
+    try:
+        await run_in_threadpool(get_object, req.image_path)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Image not found in storage")
+    job = HtcbtOcrJob()
+    await db.htcbt_ocr_jobs.insert_one(job.model_dump())
+    asyncio.create_task(_run_htcbt_ocr_job(job.id, req.image_path))
+    return job
+
+
+@api_router.get("/htcbt/ocr/jobs/{job_id}", response_model=HtcbtOcrJob)
+async def htcbt_ocr_job_status(job_id: str):
+    doc = await db.htcbt_ocr_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return HtcbtOcrJob(**doc)
+
+
+@api_router.get("/htcbt/methods")
+async def htcbt_methods():
+    return {"methods": HTCBT_METHODS, "max_samples": HTCBT_MAX_SAMPLES}
+
+
+@api_router.get("/htcbt/active")
+async def htcbt_active():
+    doc = await _htcbt_active_doc()
+    return {"active": _htcbt_public(doc) if doc else None}
+
+
+@api_router.get("/htcbt/runs")
+async def htcbt_runs():
+    docs = await db.htcbt_runs.find({"deleted_at": None}, {"_id": 0}).sort("created_at", -1).to_list(300)
+    return [_htcbt_public(d) for d in docs]
+
+
+@api_router.post("/htcbt/submit")
+async def htcbt_submit(req: HtcbtSubmitRequest):
+    code = (req.sample_code or "").strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Kode sampel tidak boleh kosong.")
+
+    active = await _htcbt_active_doc()
+    if active:
+        finish = _parse_iso(active.get("finish_at"))
+        if datetime.now(timezone.utc) >= finish:
+            raise HTTPException(
+                status_code=409,
+                detail="Run sebelumnya sudah SELESAI. Konfirmasi/arsipkan dulu sebelum memulai run baru.",
+            )
+        samples = active.get("samples", [])
+        if len(samples) >= HTCBT_MAX_SAMPLES:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Batch penuh (maks {HTCBT_MAX_SAMPLES} sampel). Hentikan run untuk memulai batch baru.",
+            )
+        if any(s.get("sample_code") == code for s in samples):
+            raise HTTPException(status_code=409, detail=f"Sampel '{code}' sudah ada di run aktif.")
+        new_sample = HtcbtSample(sample_code=code).model_dump()
+        await db.htcbt_runs.update_one(
+            {"id": active["id"]}, {"$push": {"samples": new_sample}}
+        )
+        doc = await db.htcbt_runs.find_one({"id": active["id"]}, {"_id": 0})
+        return {"run": _htcbt_public(doc), "created": False}
+
+    # No active run — start a new one (auto-start countdown)
+    method = None
+    if req.method_code:
+        method = next((m for m in HTCBT_METHODS if m["code"] == req.method_code), None)
+    if method is None:
+        method = _htcbt_method_for(req.temperature_c, req.duration_hours)
+
+    duration = req.duration_hours or (method["duration_hours"] if method else None)
+    temperature = req.temperature_c or (method["temperature_c"] if method else 0)
+    if not duration or float(duration) <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Durasi uji tidak terdeteksi. Pilih metode atau masukkan durasi (jam) manual.",
+        )
+
+    start = datetime.now(timezone.utc)
+    finish = start + timedelta(hours=float(duration))
+    run = HtcbtRun(
+        method_code=method["code"] if method else "",
+        method_label=method["label"] if method else f"Custom · {int(float(duration))} jam @ {int(float(temperature or 0))}°C",
+        temperature_c=float(temperature or 0),
+        duration_hours=float(duration),
+        samples=[HtcbtSample(sample_code=code)],
+        operator=req.operator or "",
+        notes=req.notes or "",
+        image_path=req.image_path,
+        ocr_raw=req.ocr_raw or "",
+        start_at=start.isoformat(),
+        finish_at=finish.isoformat(),
+    )
+    await db.htcbt_runs.insert_one(run.model_dump())
+    return {"run": _htcbt_public(run.model_dump()), "created": True}
+
+
+class HtcbtSampleAdd(BaseModel):
+    sample_code: str
+
+
+@api_router.delete("/htcbt/runs/{run_id}/samples/{sample_code}")
+async def htcbt_remove_sample(run_id: str, sample_code: str):
+    doc = await db.htcbt_runs.find_one({"id": run_id, "deleted_at": None}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Run tidak ditemukan")
+    await db.htcbt_runs.update_one(
+        {"id": run_id}, {"$pull": {"samples": {"sample_code": sample_code}}}
+    )
+    doc = await db.htcbt_runs.find_one({"id": run_id}, {"_id": 0})
+    return {"run": _htcbt_public(doc)}
+
+
+@api_router.post("/htcbt/runs/{run_id}/complete")
+async def htcbt_complete(run_id: str):
+    res = await db.htcbt_runs.update_one(
+        {"id": run_id}, {"$set": {"status": "done", "acknowledged": True}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Run tidak ditemukan")
+    doc = await db.htcbt_runs.find_one({"id": run_id}, {"_id": 0})
+    return {"run": _htcbt_public(doc)}
+
+
+@api_router.post("/htcbt/runs/{run_id}/stop")
+async def htcbt_stop(run_id: str):
+    res = await db.htcbt_runs.update_one(
+        {"id": run_id}, {"$set": {"status": "stopped", "acknowledged": True}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Run tidak ditemukan")
+    doc = await db.htcbt_runs.find_one({"id": run_id}, {"_id": 0})
+    return {"run": _htcbt_public(doc)}
+
+
+@api_router.delete("/htcbt/runs/{run_id}")
+async def htcbt_delete(run_id: str):
+    res = await db.htcbt_runs.update_one(
+        {"id": run_id}, {"$set": {"deleted_at": now_iso()}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Run tidak ditemukan")
+    return {"ok": True}
+
+
+
 app.include_router(api_router)
 
 

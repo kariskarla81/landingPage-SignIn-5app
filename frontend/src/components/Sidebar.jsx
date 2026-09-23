@@ -1,22 +1,25 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { FlaskConical, Beaker, Gauge, Hexagon, Circle, Palette, LogOut, UserCircle2 } from "lucide-react";
+import { FlaskConical, Beaker, Gauge, Timer, Hexagon, Circle, Palette, LogOut, UserCircle2 } from "lucide-react";
 import { MODULE_LIST } from "@/config/modules";
 import { KHT_TABS } from "@/pages/kht/KhtLayout";
 import { DKA_TABS } from "@/pages/dka/DkaLayout";
 import { COPPER_TABS } from "@/pages/copper/CopperLayout";
+import { HTCBT_TABS } from "@/pages/htcbt/HtcbtLayout";
 import { useAuth } from "@/context/AuthContext";
 
 const ICONS = {
   khtt: FlaskConical,
   "copper-strip": Beaker,
   "rating-dka": Gauge,
+  htcbt: Timer,
 };
 
 const SUBNAV = {
   khtt: { tabs: [...KHT_TABS, { to: "/khtt/color-scale", label: "Color Scale", icon: Palette }], active: "text-amber-500" },
   "copper-strip": { tabs: [...COPPER_TABS, { to: "/copper-strip/scale", label: "ASTM D130", icon: Palette }], active: "text-amber-400" },
   "rating-dka": { tabs: [...DKA_TABS, { to: "/rating-dka/scale", label: "DKA Standard", icon: Palette }], active: "text-blue-400" },
+  htcbt: { tabs: HTCBT_TABS, active: "text-amber-400" },
 };
 
 const SubNav = ({ slug }) => (

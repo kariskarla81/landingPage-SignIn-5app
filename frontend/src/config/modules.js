@@ -51,6 +51,16 @@ export const MODULES = {
       { key: "color_change", label: "Color Change", unit: "", type: "text" },
     ],
   },
+  htcbt: {
+    slug: "htcbt",
+    title: "HTCBT-ASTM D6594",
+    short: "HTCBT",
+    description:
+      "High Temperature Corrosion Bench Test — OCR label tulisan tangan (AI Vision) + Smart Timer countdown 168 jam / 312 jam dengan monitoring real-time.",
+    ratingOptions: ["Pass", "Fail"],
+    ratingLabel: "Result",
+    parameters: [],
+  },
 };
 
 export const MODULE_LIST = Object.values(MODULES);
