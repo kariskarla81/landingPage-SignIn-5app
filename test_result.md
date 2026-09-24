@@ -218,6 +218,20 @@ frontend:
         - working: "NA"
           agent: "main"
           comment: "Built copper module mirroring DKA/KHT web pattern. Routes /copper-strip (layout+dashboard), /new, /history, /trend, /copper-strip/result/:id, /copper-strip/scale. New Test: camera/gallery + form (Sample ID auto CU-, Product default Diesel Fuel B30, Batch, Operator, Temp 100, Duration 3, Remark) + Run AI Vision with polling. Result: class gauge, manual class picker (0-4c), inline edit summary/recommendation, export PDF, delete. History: search + multi-select combined PDF. Trend: severity chart. Scale: ASTM D130 chart. Dashboard + Scale verified visually via screenshots."
+  - task: "HTCBT degree symbol (°C) display fix — method cards, temp label, and monitor temperature chip"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/htcbt/NewSample.jsx, frontend/src/pages/htcbt/Monitor.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Fixed bug where degree symbol was rendering as literal text '\\u00b0C' instead of '°C'. Updated three locations: (1) NewSample.jsx line 223 - method card temperature display '@ {m.temperature_c}°C', (2) NewSample.jsx line 228 - input field label 'Temp (°C)', (3) Monitor.jsx line 106 - temperature chip '{Math.round(run.temperature_c)}°C'. All now use proper Unicode degree symbol."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL DEGREE SYMBOL TESTS PASSED. Comprehensive verification completed on both HTCBT New Sample and Monitor pages. TEST 1 - New Sample (/htcbt/new): (1) Method card 1 shows '168 jam @ 135°C' with proper degree symbol ✓, (2) Method card 2 shows '168 jam @ 135°C' with proper degree symbol ✓, (3) Method card 3 shows '312 jam @ 121°C' with proper degree symbol ✓, (4) Temp input field label shows 'Temp (°C)' with proper degree symbol ✓. TEST 2 - Monitor (/htcbt): (1) Created test run with sample 'TEST-DEG-1' using 168 jam method ✓, (2) Temperature chip displays '135°C' with proper degree symbol ✓, (3) Successfully cleaned up test run ✓. VERIFICATION: NO literal '\\u00b0C' or '\\u00b0' escape sequences found anywhere on either page ✓. All temperature displays render correctly with proper Unicode degree symbol (°C). Screenshots captured showing correct rendering. Bug fix verified and working correctly."
   - task: "Navigation flow restructure: PUBLIC landing page + login-protected testing pages + redirect flows"
     implemented: true
     working: true
@@ -240,8 +254,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "DKA-CEC L-48-A-00 module (CEC L-48-A-00) — OCR multi-sample + 192h Smart Timer /api/dkacec/*"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -250,6 +263,40 @@ agent_communication:
     - agent: "testing"
       message: |
         ✅ ALL 16 AUTH TESTS PASSED. (1) Login scenarios: wrong password→401✅, correct creds→200 with {token,username:admin,ttl_minutes:60}✅, wrong username→401✅. (2) Route guard: protected endpoints without token→401✅, with X-Session-Token→200✅, smoke check /api/copper/dashboard, /api/dka/dashboard, /api/kht/dashboard all return 200 with token✅. (3) /api/auth/me: without token→401✅, with valid token→200 {username:admin,ttl_minutes:60}✅, with garbage token abc123→401✅. (4) Public paths: GET /api/ (health)→200✅, GET /api/kht/files/nonexistentfile→404 (not 401, image serving is public)✅. (5) Logout: POST /api/auth/logout→200 {ok:true}✅, reusing same token on /api/copper/dashboard→401✅, reusing on /api/auth/me→401✅ (session fully deleted). (6) Sliding expiry: 3 consecutive /api/auth/me calls all return 200✅ (expiry refreshes on each call). Auth system working correctly. Both X-Session-Token and Authorization: Bearer <token> headers supported.
+    - agent: "main"
+      message: |
+        HTCBT degree symbol bug fix completed. The issue was that the degree symbol was rendering as literal text "\u00b0C" instead of "°C" in three locations: (1) method cards showing temperature (e.g., "@ 135°C"), (2) the Temp input field label "Temp (°C)", and (3) the Monitor page temperature chip. All three locations have been updated to use proper Unicode degree symbol. Please verify the fix by testing both the New Sample page (/htcbt/new) and Monitor page (/htcbt) to ensure all temperature displays show "°C" correctly without any literal escape sequences.
+    - agent: "testing"
+      message: |
+        ✅ HTCBT DEGREE SYMBOL BUG FIX VERIFIED — ALL TESTS PASSED
+        
+        Comprehensive end-to-end testing completed on HTCBT module to verify the degree symbol fix. All temperature displays now render correctly with proper Unicode degree symbol (°C).
+        
+        **TEST 1: HTCBT New Sample Page (/htcbt/new) — PASSED**
+        Verified METODE UJI section with method cards:
+        - Method Card 1 (168 jam): Shows "@ 135°C" with proper degree symbol ✅
+        - Method Card 2 (168 jam): Shows "@ 135°C" with proper degree symbol ✅
+        - Method Card 3 (312 jam): Shows "@ 121°C" with proper degree symbol ✅
+        - Temp input field label: Shows "Temp (°C)" with proper degree symbol ✅
+        
+        **TEST 2: HTCBT Monitor Page (/htcbt) — PASSED**
+        Created test run and verified temperature display:
+        - Entered sample code "TEST-DEG-1" ✅
+        - Selected method A (168 jam / @ 135°C) ✅
+        - Started timer successfully ✅
+        - Redirected to Monitor page ✅
+        - Temperature chip displays "135°C" with proper degree symbol ✅
+        - Successfully stopped and cleaned up test run ✅
+        
+        **VERIFICATION RESULTS:**
+        - ✅ NO literal "\u00b0C" or "\\u00b0" escape sequences found anywhere
+        - ✅ All three reported locations now display proper degree symbol (°C)
+        - ✅ Method cards: "@ 135°C" and "@ 121°C" render correctly
+        - ✅ Input label: "Temp (°C)" renders correctly
+        - ✅ Monitor temperature chip: "135°C" renders correctly
+        - ✅ Screenshots captured showing correct rendering on both pages
+        
+        **SUMMARY:** The degree symbol bug fix is working correctly. All temperature displays in the HTCBT module now show the proper Unicode degree symbol (°C) instead of the literal escape sequence "\u00b0C". The fix has been verified on both the New Sample page (method cards and input label) and the Monitor page (temperature chip). No issues found.
     - agent: "main"
       message: |
         NEW: Test the authentication system ONLY (do not retest Copper/DKA/KHT business logic beyond a smoke check).

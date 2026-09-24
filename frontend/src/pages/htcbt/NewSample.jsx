@@ -220,12 +220,12 @@ export default function HtcbtNewSample() {
             className={`rounded-lg border p-3 text-left transition-colors ${f.methodCode === m.code ? "border-amber-500 bg-amber-500/10" : "border-zinc-700 bg-zinc-900 hover:border-amber-500/40"}`}
           >
             <div className="font-mono text-[12px] font-bold text-zinc-50">{m.duration_hours} jam</div>
-            <div className="font-mono text-[11px] text-zinc-400">@ {m.temperature_c}\u00b0C</div>
+            <div className="font-mono text-[11px] text-zinc-400">@ {m.temperature_c}°C</div>
           </button>
         ))}
       </div>
       <div className="flex gap-3">
-        <Field label="Temp (\u00b0C)" value={f.temperature} onChange={set("temperature")} numeric testId="htcbt-input-temp" placeholder="135" />
+        <Field label="Temp (°C)" value={f.temperature} onChange={set("temperature")} numeric testId="htcbt-input-temp" placeholder="135" />
         <Field label="Durasi (jam)" value={f.duration} onChange={set("duration")} numeric testId="htcbt-input-duration" placeholder="168" />
       </div>
 

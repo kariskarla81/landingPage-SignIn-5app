@@ -103,7 +103,7 @@ function ActiveTimer({ run }) {
         <div className="mt-3 flex gap-3">
           <div className="flex flex-1 items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2">
             <Thermometer className="h-4 w-4 text-red-400" />
-            <span className="font-mono text-[13px] font-bold text-zinc-100">{Math.round(run.temperature_c)}\u00b0C</span>
+            <span className="font-mono text-[13px] font-bold text-zinc-100">{Math.round(run.temperature_c)}°C</span>
           </div>
           <div className="flex flex-1 items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2">
             <Timer className="h-4 w-4 text-amber-400" />
