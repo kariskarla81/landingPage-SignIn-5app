@@ -6,6 +6,7 @@ import {
   Beaker,
   Gauge,
   Timer,
+  Hourglass,
   ArrowRight,
   LogIn,
   Hexagon,
@@ -18,7 +19,7 @@ import mottoBanner from "@/assets/motto-banner.jpg";
 
 const HERO_IMG = heroLab;
 
-const MODULE_ICONS = { khtt: FlaskConical, "copper-strip": Beaker, "rating-dka": Gauge, htcbt: Timer };
+const MODULE_ICONS = { khtt: FlaskConical, "copper-strip": Beaker, "rating-dka": Gauge, htcbt: Timer, "dka-cec": Hourglass };
 
 const EXPERTISE = [
   {

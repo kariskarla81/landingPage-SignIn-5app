@@ -32,6 +32,10 @@ import HtcbtLayout from "@/pages/htcbt/HtcbtLayout";
 import HtcbtMonitor from "@/pages/htcbt/Monitor";
 import HtcbtNewSample from "@/pages/htcbt/NewSample";
 import HtcbtHistory from "@/pages/htcbt/History";
+import DkacecLayout from "@/pages/dkacec/DkacecLayout";
+import DkacecMonitor from "@/pages/dkacec/Monitor";
+import DkacecNewSample from "@/pages/dkacec/NewSample";
+import DkacecHistory from "@/pages/dkacec/History";
 
 function App() {
   return (
@@ -71,6 +75,11 @@ function App() {
                 <Route index element={<HtcbtMonitor />} />
                 <Route path="new" element={<HtcbtNewSample />} />
                 <Route path="history" element={<HtcbtHistory />} />
+              </Route>
+              <Route path="/dka-cec" element={<DkacecLayout />}>
+                <Route index element={<DkacecMonitor />} />
+                <Route path="new" element={<DkacecNewSample />} />
+                <Route path="history" element={<DkacecHistory />} />
               </Route>
               <Route path="/:module" element={<ModulePage />} />
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,11 +1,12 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { FlaskConical, Beaker, Gauge, Timer, Hexagon, Circle, Palette, LogOut, UserCircle2 } from "lucide-react";
+import { FlaskConical, Beaker, Gauge, Timer, Hexagon, Circle, Palette, LogOut, UserCircle2, Hourglass } from "lucide-react";
 import { MODULE_LIST } from "@/config/modules";
 import { KHT_TABS } from "@/pages/kht/KhtLayout";
 import { DKA_TABS } from "@/pages/dka/DkaLayout";
 import { COPPER_TABS } from "@/pages/copper/CopperLayout";
 import { HTCBT_TABS } from "@/pages/htcbt/HtcbtLayout";
+import { DKACEC_TABS } from "@/pages/dkacec/DkacecLayout";
 import { useAuth } from "@/context/AuthContext";
 
 const ICONS = {
@@ -13,6 +14,7 @@ const ICONS = {
   "copper-strip": Beaker,
   "rating-dka": Gauge,
   htcbt: Timer,
+  "dka-cec": Hourglass,
 };
 
 const SUBNAV = {
@@ -20,6 +22,7 @@ const SUBNAV = {
   "copper-strip": { tabs: [...COPPER_TABS, { to: "/copper-strip/scale", label: "ASTM D130", icon: Palette }], active: "text-amber-400" },
   "rating-dka": { tabs: [...DKA_TABS, { to: "/rating-dka/scale", label: "DKA Standard", icon: Palette }], active: "text-blue-400" },
   htcbt: { tabs: HTCBT_TABS, active: "text-amber-400" },
+  "dka-cec": { tabs: DKACEC_TABS, active: "text-blue-400" },
 };
 
 const SubNav = ({ slug }) => (

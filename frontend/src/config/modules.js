@@ -61,6 +61,16 @@ export const MODULES = {
     ratingLabel: "Result",
     parameters: [],
   },
+  "dka-cec": {
+    slug: "dka-cec",
+    title: "DKA-CEC L-48-A-00",
+    short: "DKA-CEC",
+    description:
+      "CEC L-48-A-00 oxidation test — OCR label tulisan tangan (AI Vision) membaca Sample ID, suhu & operator + Smart Timer countdown 192 jam @ 150/160/180°C.",
+    ratingOptions: ["Pass", "Fail"],
+    ratingLabel: "Result",
+    parameters: [],
+  },
 };
 
 export const MODULE_LIST = Object.values(MODULES);

@@ -2193,6 +2193,359 @@ async def htcbt_delete(run_id: str):
     return {"ok": True}
 
 
+# ===========================================================================
+# DKA-CEC L-48-A-00 — CEC L-48-A-00 oxidation/thermal test
+# Monitoring module mirroring HTCBT: handwritten-label OCR (AI Vision) reads
+# Sample ID(s), temperature and operator; persistent 192-hour countdown timer.
+# One active run at a time; a run batches up to 4 samples sharing one countdown.
+# ===========================================================================
+
+DKACEC_METHODS = [
+    {"code": "1", "label": "Metode 1 · 192 jam @ 150°C", "duration_hours": 192, "temperature_c": 150},
+    {"code": "2", "label": "Metode 2 · 192 jam @ 160°C", "duration_hours": 192, "temperature_c": 160},
+    {"code": "3", "label": "Metode 3 · 192 jam @ 180°C", "duration_hours": 192, "temperature_c": 180},
+]
+DKACEC_MAX_SAMPLES = 4
+DKACEC_DURATION_HOURS = 192
+
+
+def _dkacec_method_for(temperature_c, duration_hours=None):
+    """Match OCR values to one of the three methods. All methods share 192h,
+    so temperature is the discriminator (150 / 160 / 180)."""
+    try:
+        temp = float(temperature_c) if temperature_c is not None else None
+    except (TypeError, ValueError):
+        temp = None
+    if temp is not None:
+        best, best_diff = None, None
+        for m in DKACEC_METHODS:
+            diff = abs(temp - m["temperature_c"])
+            if best is None or diff < best_diff:
+                best, best_diff = m, diff
+        if best is not None and best_diff <= 5:
+            return best
+    return None
+
+
+DKACEC_OCR_PROMPT = (
+    "You are an OCR and data-extraction engine reading a HANDWRITTEN laboratory sample "
+    "label / note for a DKA-CEC L-48-A-00 oxidation test.\n"
+    "A single label/note may list MULTIPLE sample codes that all belong to the SAME batch "
+    "(they share one temperature and one operator).\n"
+    "Carefully read ALL the handwriting in the image and extract:\n"
+    "- sample_codes: an ARRAY of ALL sample identifiers / codes exactly as written, in the order "
+    "they appear (list of strings). Each line that looks like a sample code is a separate entry. "
+    "Keep letters, digits and separators (e.g. 'WZ 275215', 'BL 275314'). Do NOT include the "
+    "temperature or operator lines as sample codes. If only one code exists, return an array with one element.\n"
+    "- temperature_c: the test temperature in degrees Celsius as a NUMBER only (e.g. 150, 160 or 180). "
+    "This applies to the whole batch. null if not present.\n"
+    "- operator: the operator / analyst name if written on the note (string). null if not present. "
+    "Look for a name, or a label like 'Operator', 'Analis', 'By', 'PIC'.\n\n"
+    "Common valid temperatures are 150C, 160C and 180C (all run for 192 hours).\n\n"
+    "Return ONLY a valid minified JSON object (no markdown) with EXACTLY these keys:\n"
+    '{"sample_codes": [<string>, ...], "temperature_c": <number or null>, '
+    '"operator": <string or null>, "raw_text": <all text you can read from the label>}'
+)
+
+
+async def run_dkacec_ocr(image_b64: str) -> dict:
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"dkacec-{uuid.uuid4()}",
+        system_message="You are a precise handwriting OCR model that only outputs JSON.",
+    ).with_model("gemini", "gemini-3.1-pro-preview")
+    resp = await chat.send_message(
+        UserMessage(text=DKACEC_OCR_PROMPT, file_contents=[ImageContent(image_base64=image_b64)])
+    )
+    return _parse_ai_json(resp if isinstance(resp, str) else str(resp))
+
+
+class DkacecSample(BaseModel):
+    sample_code: str
+    added_at: str = Field(default_factory=now_iso)
+
+
+class DkacecRun(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    method_code: str = ""
+    method_label: str = ""
+    temperature_c: float = 0
+    duration_hours: float = DKACEC_DURATION_HOURS
+    samples: List[DkacecSample] = Field(default_factory=list)
+    operator: str = ""
+    notes: str = ""
+    image_path: Optional[str] = None
+    ocr_raw: str = ""
+    start_at: str = Field(default_factory=now_iso)
+    finish_at: str = ""
+    status: str = "running"  # running | done | stopped
+    acknowledged: bool = False
+    created_at: str = Field(default_factory=now_iso)
+    deleted_at: Optional[str] = None
+
+
+class DkacecOcrRequest(BaseModel):
+    image_path: str
+
+
+class DkacecOcrJob(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    status: str = "running"  # running | done | error
+    result: Optional[dict] = None
+    error: Optional[str] = None
+    created_at: str = Field(default_factory=now_iso)
+    finished_at: Optional[str] = None
+
+
+def _dkacec_public(doc: dict) -> dict:
+    doc = {k: v for k, v in doc.items() if k != "_id"}
+    now = datetime.now(timezone.utc)
+    finish = _parse_iso(doc.get("finish_at") or now.isoformat())
+    start = _parse_iso(doc.get("start_at") or now.isoformat())
+    remaining = int((finish - now).total_seconds())
+    total = int((finish - start).total_seconds()) or 1
+    time_up = now >= finish
+    doc["remaining_seconds"] = max(0, remaining)
+    doc["elapsed_seconds"] = max(0, int((now - start).total_seconds()))
+    doc["total_seconds"] = total
+    doc["progress_pct"] = min(100, max(0, round((total - max(0, remaining)) / total * 100, 1)))
+    doc["time_up"] = bool(time_up and doc.get("status") == "running")
+    doc["is_active"] = doc.get("status") == "running"
+    return doc
+
+
+async def _dkacec_active_doc() -> Optional[dict]:
+    return await db.dkacec_runs.find_one(
+        {"status": "running", "deleted_at": None}, sort=[("created_at", -1)]
+    )
+
+
+async def _run_dkacec_ocr_job(job_id: str, image_path: str):
+    try:
+        content, _ = await run_in_threadpool(get_object, image_path)
+        small = await run_in_threadpool(_downscale_for_ai, content)
+        b64 = base64.b64encode(small).decode("utf-8")
+        ai = await run_dkacec_ocr(b64)
+        method = _dkacec_method_for(ai.get("temperature_c"))
+        raw_codes = ai.get("sample_codes")
+        if not isinstance(raw_codes, list):
+            raw_codes = [ai.get("sample_code")] if ai.get("sample_code") else []
+        codes, seen = [], set()
+        for c in raw_codes:
+            s = str(c or "").strip()
+            key = s.upper()
+            if s and key not in seen:
+                seen.add(key)
+                codes.append(s)
+        over_limit = len(codes) > DKACEC_MAX_SAMPLES
+        codes = codes[:DKACEC_MAX_SAMPLES]
+        result = {
+            "sample_codes": codes,
+            "sample_code": codes[0] if codes else "",
+            "detected_count": len(codes),
+            "over_limit": over_limit,
+            "max_samples": DKACEC_MAX_SAMPLES,
+            "temperature_c": ai.get("temperature_c"),
+            "duration_hours": DKACEC_DURATION_HOURS,
+            "operator": str(ai.get("operator") or "").strip(),
+            "raw_text": str(ai.get("raw_text") or ""),
+            "method_code": method["code"] if method else "",
+            "method_label": method["label"] if method else "",
+        }
+        await db.dkacec_ocr_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "done", "result": result, "finished_at": now_iso()}},
+        )
+    except Exception as e:
+        logger.exception("DKA-CEC OCR job failed")
+        await db.dkacec_ocr_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "error", "error": str(e), "finished_at": now_iso()}},
+        )
+
+
+@api_router.post("/dkacec/ocr/start", response_model=DkacecOcrJob)
+async def dkacec_ocr_start(req: DkacecOcrRequest):
+    try:
+        await run_in_threadpool(get_object, req.image_path)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Image not found in storage")
+    job = DkacecOcrJob()
+    await db.dkacec_ocr_jobs.insert_one(job.model_dump())
+    asyncio.create_task(_run_dkacec_ocr_job(job.id, req.image_path))
+    return job
+
+
+@api_router.get("/dkacec/ocr/jobs/{job_id}", response_model=DkacecOcrJob)
+async def dkacec_ocr_job_status(job_id: str):
+    doc = await db.dkacec_ocr_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return DkacecOcrJob(**doc)
+
+
+@api_router.get("/dkacec/methods")
+async def dkacec_methods():
+    return {"methods": DKACEC_METHODS, "max_samples": DKACEC_MAX_SAMPLES, "duration_hours": DKACEC_DURATION_HOURS}
+
+
+@api_router.get("/dkacec/active")
+async def dkacec_active():
+    doc = await _dkacec_active_doc()
+    return {"active": _dkacec_public(doc) if doc else None}
+
+
+@api_router.get("/dkacec/runs")
+async def dkacec_runs():
+    docs = await db.dkacec_runs.find({"deleted_at": None}, {"_id": 0}).sort("created_at", -1).to_list(300)
+    return [_dkacec_public(d) for d in docs]
+
+
+class DkacecBatchSubmitRequest(BaseModel):
+    sample_codes: List[str] = Field(default_factory=list)
+    temperature_c: Optional[float] = None
+    duration_hours: Optional[float] = None
+    method_code: Optional[str] = None
+    operator: str = ""
+    notes: str = ""
+    image_path: Optional[str] = None
+    ocr_raw: str = ""
+
+
+@api_router.post("/dkacec/submit-batch")
+async def dkacec_submit_batch(req: DkacecBatchSubmitRequest):
+    codes, seen = [], set()
+    for c in (req.sample_codes or []):
+        s = (c or "").strip()
+        key = s.upper()
+        if s and key not in seen:
+            seen.add(key)
+            codes.append(s)
+    if not codes:
+        raise HTTPException(status_code=400, detail="Minimal satu kode sampel harus diisi.")
+
+    truncated = len(codes) > DKACEC_MAX_SAMPLES
+    codes = codes[:DKACEC_MAX_SAMPLES]
+
+    added, skipped = [], []
+    active = await _dkacec_active_doc()
+    if active:
+        finish = _parse_iso(active.get("finish_at"))
+        if datetime.now(timezone.utc) >= finish:
+            raise HTTPException(
+                status_code=409,
+                detail="Run sebelumnya sudah SELESAI. Konfirmasi/arsipkan dulu sebelum memulai run baru.",
+            )
+        existing = active.get("samples", [])
+        existing_codes = {s.get("sample_code", "").upper() for s in existing}
+        slots = DKACEC_MAX_SAMPLES - len(existing)
+        to_push = []
+        for code in codes:
+            if code.upper() in existing_codes:
+                skipped.append({"code": code, "reason": "duplikat"})
+                continue
+            if len(to_push) >= slots:
+                skipped.append({"code": code, "reason": "batch penuh"})
+                continue
+            to_push.append(DkacecSample(sample_code=code).model_dump())
+            existing_codes.add(code.upper())
+            added.append(code)
+        if to_push:
+            await db.dkacec_runs.update_one(
+                {"id": active["id"]}, {"$push": {"samples": {"$each": to_push}}}
+            )
+        doc = await db.dkacec_runs.find_one({"id": active["id"]}, {"_id": 0})
+        return {
+            "run": _dkacec_public(doc), "created": False,
+            "added": added, "skipped": skipped, "truncated": truncated,
+            "max_samples": DKACEC_MAX_SAMPLES,
+        }
+
+    # No active run — start a new batch.
+    method = None
+    if req.method_code:
+        method = next((m for m in DKACEC_METHODS if m["code"] == req.method_code), None)
+    if method is None:
+        method = _dkacec_method_for(req.temperature_c)
+
+    temperature = req.temperature_c or (method["temperature_c"] if method else 0)
+    duration = req.duration_hours or (method["duration_hours"] if method else DKACEC_DURATION_HOURS)
+    if (not temperature or float(temperature) <= 0) and method is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Suhu uji tidak terdeteksi. Pilih metode (150/160/180°C) atau masukkan suhu manual.",
+        )
+
+    start = datetime.now(timezone.utc)
+    finish = start + timedelta(hours=float(duration))
+    run = DkacecRun(
+        method_code=method["code"] if method else "",
+        method_label=method["label"] if method else f"Custom · {int(float(duration))} jam @ {int(float(temperature or 0))}°C",
+        temperature_c=float(temperature or 0),
+        duration_hours=float(duration),
+        samples=[DkacecSample(sample_code=c) for c in codes],
+        operator=req.operator or "",
+        notes=req.notes or "",
+        image_path=req.image_path,
+        ocr_raw=req.ocr_raw or "",
+        start_at=start.isoformat(),
+        finish_at=finish.isoformat(),
+    )
+    await db.dkacec_runs.insert_one(run.model_dump())
+    return {
+        "run": _dkacec_public(run.model_dump()), "created": True,
+        "added": list(codes), "skipped": skipped, "truncated": truncated,
+        "max_samples": DKACEC_MAX_SAMPLES,
+    }
+
+
+@api_router.delete("/dkacec/runs/{run_id}/samples/{sample_code}")
+async def dkacec_remove_sample(run_id: str, sample_code: str):
+    doc = await db.dkacec_runs.find_one({"id": run_id, "deleted_at": None}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Run tidak ditemukan")
+    await db.dkacec_runs.update_one(
+        {"id": run_id}, {"$pull": {"samples": {"sample_code": sample_code}}}
+    )
+    doc = await db.dkacec_runs.find_one({"id": run_id}, {"_id": 0})
+    return {"run": _dkacec_public(doc)}
+
+
+@api_router.post("/dkacec/runs/{run_id}/complete")
+async def dkacec_complete(run_id: str):
+    res = await db.dkacec_runs.update_one(
+        {"id": run_id}, {"$set": {"status": "done", "acknowledged": True}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Run tidak ditemukan")
+    doc = await db.dkacec_runs.find_one({"id": run_id}, {"_id": 0})
+    return {"run": _dkacec_public(doc)}
+
+
+@api_router.post("/dkacec/runs/{run_id}/stop")
+async def dkacec_stop(run_id: str):
+    res = await db.dkacec_runs.update_one(
+        {"id": run_id}, {"$set": {"status": "stopped", "acknowledged": True}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Run tidak ditemukan")
+    doc = await db.dkacec_runs.find_one({"id": run_id}, {"_id": 0})
+    return {"run": _dkacec_public(doc)}
+
+
+@api_router.delete("/dkacec/runs/{run_id}")
+async def dkacec_delete(run_id: str):
+    res = await db.dkacec_runs.update_one(
+        {"id": run_id}, {"$set": {"deleted_at": now_iso()}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Run tidak ditemukan")
+    return {"ok": True}
+
+
+
 
 app.include_router(api_router)
 

@@ -170,6 +170,24 @@ backend:
           agent: "testing"
           comment: "✅ PASSED. All endpoints tested: (1) GET /api/copper/dashboard returns correct structure with latest/total/passed/failed, total>=4 seeded records, passed+failed==total verified. (2) GET /api/copper/trend returns list with id/classification/severity/status/sample_id/created_at, severity correctly in range 0-12. (3) GET /api/copper/tests returns >=4 records. (4) GET /api/copper/tests?q=Diesel search filter works. (5) GET /api/copper/reference-scale returns 13 classes with base64 image. (6) GET /api/copper/tests/{id} retrieves specific record, invalid id returns 404. (7) PUT /api/copper/tests/{id} with classification='4b' correctly updates status→TARNISH, severity→11, group→Corrosion, color updated, edited=true. (8) PUT with ai_summary/recommendation persists changes. (9) DELETE soft-deletes record (removed from list, GET returns 404). All CRUD operations working correctly."
 
+  - task: "DKA-CEC L-48-A-00 module (CEC L-48-A-00) — OCR multi-sample + 192h Smart Timer /api/dkacec/*"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "NEW MODULE mirroring HTCBT. 3 methods all 192h: M1 150C, M2 160C, M3 180C (temperature is discriminator). OCR (Gemini gemini-3.1-pro-preview) reads sample_codes[] + temperature_c + operator + raw_text; result normalized/deduped, capped at DKACEC_MAX_SAMPLES=4, returns detected_count/over_limit/max_samples/duration_hours(192)/method_code/method_label/operator. Endpoints under /api/dkacec/*: GET methods (max_samples=4, duration_hours=192), POST ocr/start + GET ocr/jobs/{id}, GET active, GET runs, POST submit-batch {sample_codes[],temperature_c,duration_hours,method_code,operator,image_path,ocr_raw} -> {run,created,added,skipped,truncated,max_samples} (creates 192h run or adds to active respecting dedup+capacity), DELETE runs/{id}/samples/{code}, POST runs/{id}/complete, POST runs/{id}/stop, DELETE runs/{id}. Separate Mongo collections dkacec_runs + dkacec_ocr_jobs (does NOT touch existing dka/rating-dka). Test image (WZ 275215/BL 275314/NT 265142/WZ 265336 note, no operator) at https://customer-assets-jai6qajn.emergentagent.net/job_signin-landing/artifacts/ji7mg7ls_WhatsApp%20Image%202026-09-24%20at%2008.16.23.jpeg"
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL 9 TESTS PASSED. (1) methods: 3 methods 150/160/180 all 192h, max_samples=4, duration_hours=192. (2) OCR multi-sample: extracted 4 codes [WZ 275215, BL 275314, NT 265142, WZ 265336] in ~13s via REAL Gemini, temperature 135 detected, method_code correctly empty (135 not in 150/160/180), over_limit false, duration_hours 192. (3) Batch create method_code=2 -> temp 160, 192h, 3 samples, operator Budi, added 3. (4) Dedup+capacity: duplicate skipped 'duplikat', 4th slot filled, extra skipped 'batch penuh', run stays 4. (5) Truncation: 5 codes -> 4 added truncated true, temp 180 -> method 3. (6) Method by temp: 150 -> method 1. (7) Validation: empty -> 400, missing temp -> 400. (8) Auth guard: no token -> 401. (9) History + soft delete work. No impact on existing rating-dka. All runs cleaned up, active=null."
+        - working: true
+          agent: "testing"
+          comment: "✅ ALL 9 DKA-CEC TESTS PASSED. (1) GET /api/dkacec/methods: 3 methods verified (code 1/2/3 for 150/160/180°C, all 192h duration), max_samples=4, duration_hours=192✅. (2) OCR multi-sample: Downloaded test image (83898 bytes)✅, uploaded via /api/kht/upload✅, started OCR job✅, completed in ~13s with REAL Gemini AI call (gemini-3.1-pro-preview)✅. OCR result verified: sample_codes=['WZ 275215','BL 275314','NT 265142','WZ 265336'] (4 samples extracted)✅, detected_count=4✅, over_limit=false✅, max_samples=4✅, temperature_c=135✅, duration_hours=192✅, operator='' (empty, as expected)✅, method_code='' (empty because 135°C is NOT 150/160/180, correctly handled)✅, raw_text present✅. CORE FEATURE WORKING: OCR successfully reads MULTIPLE sample codes from one handwritten note✅. (3) Batch create with method: Stopped existing active run✅, submitted batch with method_code='2' (160°C)✅, response: created=true✅, run.temperature_c=160✅, run.duration_hours=192✅, run.samples has 3 codes✅, run.operator='Budi'✅, added=['S-A','S-B','S-C']✅, skipped=[]✅, finish_at ≈ start_at + 192h✅. Active run verified: remaining_seconds=691199 (>0)✅, progress_pct=0 (<100)✅. (4) Dedup + capacity: Submitted ['S-A','S-D','S-E'] to active run (already has 3 samples)✅, response: created=false✅, added=['S-D'] (filled 4th slot)✅, skipped=[{code:'S-A',reason:'duplikat'},{code:'S-E',reason:'batch penuh'}]✅, run now has exactly 4 samples✅. Deduplication working✅, capacity limit enforced✅. (5) Truncation: Stopped active run✅, submitted 5 codes ['A','B','C','D','E'] with temperature_c=180✅, response: truncated=true✅, added=['A','B','C','D'] (E dropped)✅, created=true✅, method_code='3' (180°C resolved correctly)✅, duration_hours=192✅. (6) Method by temperature: Stopped active run✅, submitted ['T1'] with temperature_c=150✅, response: created=true✅, method_code='1'✅, method_label='Metode 1 · 192 jam @ 150°C'✅. (7) Validation: Empty sample_codes→400 'Minimal satu kode sampel harus diisi'✅, missing method_code and temperature_c (no active run)→400 'Suhu uji tidak terdeteksi'✅. (8) Auth guard: POST /api/dkacec/submit-batch without token→401✅. (9) History & delete: GET /api/dkacec/runs returns 3 runs✅, DELETE /api/dkacec/runs/{id} soft-deletes (disappears from list)✅. CLEANUP: All test runs stopped and deleted✅, GET /api/dkacec/active returns null (no leftover active run)✅. VERIFICATION: GET /api/dka/dashboard still accessible (DKA data not affected)✅. AI integration is REAL (Gemini gemini-3.1-pro-preview), not mocked. All endpoints working correctly."
+
   - task: "HTCBT multi-sample batch OCR (ASTM D6594) — /api/htcbt/ocr/* + /api/htcbt/submit-batch"
     implemented: true
     working: true
@@ -223,7 +241,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "HTCBT multi-sample batch OCR (ASTM D6594) — /api/htcbt/ocr/* + /api/htcbt/submit-batch"
+    - "DKA-CEC L-48-A-00 module (CEC L-48-A-00) — OCR multi-sample + 192h Smart Timer /api/dkacec/*"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -605,6 +623,154 @@ agent_communication:
           "method_label": "Metode A · 168 jam @ 135°C",
           "raw_text": "<handwritten text from image>"
         }
+    - agent: "main"
+      message: |
+        NEW: Test the DKA-CEC L-48-A-00 module backend ONLY (namespace /api/dkacec/*). Do NOT retest HTCBT/Copper/DKA/KHT.
+        
+        AUTH: All /api/* (except /api/auth/*, /api/ health, /api/kht/files/*) require a session token. Login first: POST /api/auth/login {"username":"admin","password":"admin123"} -> get token. Send token via header `X-Session-Token: <token>` on all subsequent requests. Credentials in /app/memory/test_credentials.md.
+        
+        CONTEXT: This is a NEW module mirroring HTCBT. 3 methods, ALL 192 hours, differing only by temperature: code "1"=150°C, "2"=160°C, "3"=180°C. OCR reads MULTIPLE handwritten sample codes + temperature + operator name. Batch max 4 samples sharing one 192h countdown.
+        
+        TEST IMAGE (handwritten note, 4 sample codes, temp, no operator): download from
+        https://customer-assets-jai6qajn.emergentagent.net/job_signin-landing/artifacts/ji7mg7ls_WhatsApp%20Image%202026-09-24%20at%2008.16.23.jpeg
+        Expected: "WZ 275215","BL 275314","NT 265142","WZ 265336", and 135°C (note: 135 is NOT one of 150/160/180 so method_code should be empty "" — that's expected/correct).
+        
+        TEST FLOW:
+        1) GET /api/dkacec/methods -> VERIFY 3 methods (150/160/180 all duration_hours 192), max_samples==4, duration_hours==192.
+        2) OCR multi-sample: Upload the test image via POST /api/kht/upload (multipart field 'file'), get path. POST /api/dkacec/ocr/start {image_path}. Poll GET /api/dkacec/ocr/jobs/{id} until status "done" (real Gemini, allow up to ~2 min). VERIFY result.sample_codes is a list of ~4 codes (allow minor OCR digit variance), detected_count matches, over_limit false, max_samples==4, duration_hours==192, and result has keys temperature_c, operator (may be empty string), method_code, raw_text. CORE: it must return MULTIPLE codes, not 1. Report the result JSON verbatim.
+        3) Batch create with method: Ensure no active run (GET /api/dkacec/active; if active exists, POST /api/dkacec/runs/{id}/stop to clear). POST /api/dkacec/submit-batch {sample_codes:["S-A","S-B","S-C"], method_code:"2", operator:"Budi"}. VERIFY created==true, run.temperature_c==160, run.duration_hours==192, run.samples has 3 codes, run.operator=="Budi", added length 3, skipped empty, and finish_at ≈ start_at + 192h. GET /api/dkacec/active shows the running run with a countdown (remaining_seconds > 0, progress_pct small).
+        4) Dedup + capacity: POST /api/dkacec/submit-batch into the SAME active run with sample_codes:["S-A","S-D","S-E"] (S-A duplicate). VERIFY created==false, S-A skipped reason "duplikat", one of S-D/S-E added to fill the 4th slot, and the remaining one skipped reason "batch penuh". Run must now have exactly 4 samples.
+        5) Truncation: Stop the active run (POST /api/dkacec/runs/{id}/stop). Then POST /api/dkacec/submit-batch {sample_codes:["A","B","C","D","E"], temperature_c:180}. VERIFY truncated==true, only 4 samples added, run created==true, method resolved to code "3" (180°C), duration 192.
+        6) Method by temperature: (After stopping the previous run) POST /api/dkacec/submit-batch {sample_codes:["T1"], temperature_c:150}. VERIFY created==true, method_code resolves to "1" and method_label mentions 150. Stop it.
+        7) Validation: POST /api/dkacec/submit-batch {sample_codes:[]} -> 400. POST /api/dkacec/submit-batch {sample_codes:["X"]} with NO method_code and NO temperature (fresh, no active run) -> 400 (suhu tidak terdeteksi).
+        8) Auth guard: POST /api/dkacec/submit-batch WITHOUT token -> 401.
+        9) History: GET /api/dkacec/runs returns the runs created. DELETE /api/dkacec/runs/{id} soft-deletes (disappears from list).
+        
+        CLEANUP: Stop or soft-delete ALL dkacec runs you created so no leftover active run blocks the user (GET /api/dkacec/active must return null at the end). Confirm you did NOT touch existing rating-dka (/api/dka/*) data.
+    - agent: "testing"
+      message: |
+        ✅ ALL 9 DKA-CEC L-48-A-00 MODULE TESTS PASSED
+        
+        Comprehensive testing of the NEW /api/dkacec/* endpoints completed successfully. All scenarios working correctly.
+        
+        **TEST 1: GET /api/dkacec/methods — PASSED**
+        - 3 methods verified: code "1"/"2"/"3" for 150/160/180°C ✅
+        - All methods have duration_hours=192 ✅
+        - max_samples=4 ✅
+        - duration_hours=192 (global) ✅
+        
+        **TEST 2: OCR MULTI-SAMPLE EXTRACTION — PASSED**
+        - Downloaded test image (83898 bytes) ✅
+        - Uploaded via POST /api/kht/upload → elastech-kht/uploads/*.jpg ✅
+        - Started OCR job via POST /api/dkacec/ocr/start ✅
+        - Job completed in ~13 seconds with REAL Gemini AI call (gemini-3.1-pro-preview) ✅
+        - **OCR Result (verbatim):**
+          ```json
+          {
+            "sample_codes": ["WZ 275215", "BL 275314", "NT 265142", "WZ 265336"],
+            "sample_code": "WZ 275215",
+            "detected_count": 4,
+            "over_limit": false,
+            "max_samples": 4,
+            "temperature_c": 135,
+            "duration_hours": 192,
+            "operator": "",
+            "raw_text": "WZ 275215\nBL 275314\nNT 265142\nWZ 265336\n168 jam\n135 °C",
+            "method_code": "",
+            "method_label": ""
+          }
+          ```
+        - ✅ CORE FEATURE VERIFIED: OCR extracted 4 sample codes from one handwritten note
+        - ✅ sample_codes is a list with 4 codes (WZ 275215, BL 275314, NT 265142, WZ 265336)
+        - ✅ detected_count=4 matches len(sample_codes)
+        - ✅ over_limit=false (4 codes, not more than max)
+        - ✅ max_samples=4
+        - ✅ duration_hours=192
+        - ✅ temperature_c=135 (correctly detected)
+        - ✅ operator="" (empty, as expected - no operator in image)
+        - ✅ method_code="" (empty because 135°C is NOT 150/160/180 - correctly handled)
+        - ✅ raw_text present
+        
+        **TEST 3: BATCH CREATE WITH METHOD — PASSED**
+        - Stopped existing active run first ✅
+        - Submitted batch with method_code="2" (160°C), operator="Budi" ✅
+        - Response verified:
+          • created=true ✅
+          • run.temperature_c=160 ✅
+          • run.duration_hours=192 ✅
+          • run.samples has 3 codes (S-A, S-B, S-C) ✅
+          • run.operator="Budi" ✅
+          • added=['S-A','S-B','S-C'] (length 3) ✅
+          • skipped=[] (empty) ✅
+          • finish_at ≈ start_at + 192h ✅
+        - Active run verification:
+          • GET /api/dkacec/active shows running run ✅
+          • remaining_seconds=691199 (>0) ✅
+          • progress_pct=0 (<100) ✅
+        
+        **TEST 4: DEDUP + CAPACITY — PASSED**
+        - Submitted ['S-A','S-D','S-E'] to active run (already has 3 samples) ✅
+        - Response verified:
+          • created=false (adding to existing) ✅
+          • added=['S-D'] (filled 4th slot) ✅
+          • skipped=[{code:'S-A',reason:'duplikat'},{code:'S-E',reason:'batch penuh'}] ✅
+          • run now has exactly 4 samples ✅
+        - ✅ Deduplication working (S-A skipped as duplicate)
+        - ✅ Capacity limit enforced (S-E skipped as batch full)
+        
+        **TEST 5: TRUNCATION — PASSED**
+        - Stopped active run first ✅
+        - Submitted 5 codes ['A','B','C','D','E'] with temperature_c=180 ✅
+        - Response verified:
+          • truncated=true ✅
+          • added=['A','B','C','D'] (only 4, E dropped) ✅
+          • created=true ✅
+          • method_code="3" (180°C resolved correctly) ✅
+          • duration_hours=192 ✅
+        
+        **TEST 6: METHOD BY TEMPERATURE — PASSED**
+        - Stopped active run first ✅
+        - Submitted ['T1'] with temperature_c=150 ✅
+        - Response verified:
+          • created=true ✅
+          • method_code="1" (150°C resolved correctly) ✅
+          • method_label="Metode 1 · 192 jam @ 150°C" ✅
+        - Stopped test run for cleanup ✅
+        
+        **TEST 7: VALIDATION — PASSED**
+        - Empty sample_codes [] → 400 "Minimal satu kode sampel harus diisi" ✅
+        - Missing method_code and temperature_c (no active run) → 400 "Suhu uji tidak terdeteksi" ✅
+        
+        **TEST 8: AUTH GUARD — PASSED**
+        - POST /api/dkacec/submit-batch without token → 401 ✅
+        
+        **TEST 9: HISTORY & DELETE — PASSED**
+        - GET /api/dkacec/runs returns 3 runs ✅
+        - DELETE /api/dkacec/runs/{id} soft-deletes (disappears from list) ✅
+        
+        **CLEANUP:**
+        - All test runs stopped and deleted ✅
+        - GET /api/dkacec/active returns null (no leftover active run) ✅
+        
+        **VERIFICATION:**
+        - GET /api/dka/dashboard still accessible (DKA data not affected) ✅
+        
+        **KEY FINDINGS:**
+        - ✅ Multi-sample batch OCR feature fully functional
+        - ✅ OCR successfully extracts 4 sample codes from one handwritten note
+        - ✅ All 3 methods (150/160/180°C, all 192h) working correctly
+        - ✅ Batch submission with deduplication and capacity limits working
+        - ✅ Truncation warning when >4 samples submitted
+        - ✅ Method resolution by temperature working
+        - ✅ Validation errors properly handled
+        - ✅ Auth guard protecting all endpoints
+        - ✅ History and soft delete working
+        - ✅ AI integration is REAL (Gemini gemini-3.1-pro-preview), not mocked
+        - ✅ All endpoints responding correctly
+        - ✅ No impact on existing DKA data
+        
+        **SUMMARY:** The DKA-CEC L-48-A-00 module is working perfectly. All 9 test scenarios passed. The system successfully reads multiple sample codes from a single handwritten note, creates 192h batches with proper deduplication and capacity limits, resolves methods by temperature, handles validation, and protects endpoints with authentication. No issues found.
+
         ```
         
         **SUMMARY:** The HTCBT multi-sample batch OCR feature is working perfectly. The system successfully reads multiple sample codes from a single handwritten note, creates batches with proper deduplication and capacity limits, handles truncation warnings, validates inputs, and protects endpoints with authentication. All 6 test scenarios passed. No issues found.
