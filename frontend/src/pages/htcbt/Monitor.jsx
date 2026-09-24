@@ -9,6 +9,7 @@ import {
   useHtcbtActive, useHtcbtComplete, useHtcbtStop, useHtcbtRemoveSample,
   fmtFull, fmtCountdown, remainingSeconds,
 } from "@/lib/htcbt/api";
+import { requestNotifyPermission, unlockAudio, notifyTimerDone } from "@/lib/notify";
 
 const Card = ({ children, className = "", ...p }) => (
   <div className={`rounded-xl border border-zinc-700 bg-zinc-900 p-4 ${className}`} {...p}>{children}</div>
@@ -35,10 +36,26 @@ function ActiveTimer({ run }) {
   const removeSample = useHtcbtRemoveSample();
   const firedRef = useRef(false);
 
+  // Ask for notification permission and unlock audio (once the timer is on screen).
+  useEffect(() => {
+    requestNotifyPermission();
+    const unlock = () => unlockAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
   useEffect(() => {
     if (finished && !firedRef.current) {
       firedRef.current = true;
       toast.success("Timer HTCBT SELESAI \u2014 pengujian 100% tuntas.", { duration: 8000 });
+      notifyTimerDone(
+        "HTCBT SELESAI \u2014 Timer 0 jam",
+        `Pengujian ${Math.round(run.duration_hours)} jam @ ${Math.round(run.temperature_c)}\u00b0C telah selesai. Segera konfirmasi batch.`,
+      );
     }
     if (!finished) firedRef.current = false;
   }, [finished]);
