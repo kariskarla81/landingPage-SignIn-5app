@@ -1786,17 +1786,22 @@ def _htcbt_method_for(temperature_c, duration_hours):
 
 HTCBT_OCR_PROMPT = (
     "You are an OCR and data-extraction engine reading a HANDWRITTEN laboratory sample "
-    "label for an HTCBT test (High Temperature Corrosion Bench Test, ASTM D6594).\n"
-    "Carefully read the handwriting on the label in the image and extract:\n"
-    "- sample_code: the sample identifier / code exactly as written (string). Keep letters, "
-    "digits and separators.\n"
+    "label / note for an HTCBT test (High Temperature Corrosion Bench Test, ASTM D6594).\n"
+    "A single label/note may list MULTIPLE sample codes that all belong to the SAME batch "
+    "(they share one temperature and one duration).\n"
+    "Carefully read ALL the handwriting in the image and extract:\n"
+    "- sample_codes: an ARRAY of ALL sample identifiers / codes exactly as written, in the order "
+    "they appear (list of strings). Each line that looks like a sample code is a separate entry. "
+    "Keep letters, digits and separators (e.g. 'WZ 275215', 'BL 275314', 'NT 265142', 'WZ 265336'). "
+    "Do NOT include the temperature or duration lines as sample codes. If only one code exists, "
+    "return an array with one element.\n"
     "- temperature_c: the test temperature in degrees Celsius as a NUMBER only (e.g. 135 or 121). "
-    "null if not present.\n"
+    "This applies to the whole batch. null if not present.\n"
     "- duration_hours: the test duration in HOURS as a NUMBER only. If written as '168 jam' or "
-    "'168 h' return 168; if '312 jam' return 312. null if not present.\n\n"
+    "'168 h' return 168; if '312 jam' return 312. Applies to the whole batch. null if not present.\n\n"
     "Common valid combinations are 168 hours at 135C, and 312 hours at 121C.\n\n"
     "Return ONLY a valid minified JSON object (no markdown) with EXACTLY these keys:\n"
-    '{"sample_code": <string>, "temperature_c": <number or null>, '
+    '{"sample_codes": [<string>, ...], "temperature_c": <number or null>, '
     '"duration_hours": <number or null>, "raw_text": <all text you can read from the label>}'
 )
 
@@ -1905,8 +1910,26 @@ async def _run_htcbt_ocr_job(job_id: str, image_path: str):
         b64 = base64.b64encode(small).decode("utf-8")
         ai = await run_htcbt_ocr(b64)
         method = _htcbt_method_for(ai.get("temperature_c"), ai.get("duration_hours"))
+        # Normalize sample codes into a de-duplicated, order-preserving list.
+        raw_codes = ai.get("sample_codes")
+        if not isinstance(raw_codes, list):
+            raw_codes = [ai.get("sample_code")] if ai.get("sample_code") else []
+        codes = []
+        seen = set()
+        for c in raw_codes:
+            s = str(c or "").strip()
+            key = s.upper()
+            if s and key not in seen:
+                seen.add(key)
+                codes.append(s)
+        over_limit = len(codes) > HTCBT_MAX_SAMPLES
+        codes = codes[:HTCBT_MAX_SAMPLES]
         result = {
-            "sample_code": str(ai.get("sample_code") or "").strip(),
+            "sample_codes": codes,
+            "sample_code": codes[0] if codes else "",
+            "detected_count": len(codes),
+            "over_limit": over_limit,
+            "max_samples": HTCBT_MAX_SAMPLES,
             "temperature_c": ai.get("temperature_c"),
             "duration_hours": ai.get("duration_hours"),
             "raw_text": str(ai.get("raw_text") or ""),
@@ -2025,8 +2048,105 @@ async def htcbt_submit(req: HtcbtSubmitRequest):
     return {"run": _htcbt_public(run.model_dump()), "created": True}
 
 
-class HtcbtSampleAdd(BaseModel):
-    sample_code: str
+class HtcbtBatchSubmitRequest(BaseModel):
+    sample_codes: List[str] = Field(default_factory=list)
+    temperature_c: Optional[float] = None
+    duration_hours: Optional[float] = None
+    method_code: Optional[str] = None
+    operator: str = ""
+    notes: str = ""
+    image_path: Optional[str] = None
+    ocr_raw: str = ""
+
+
+@api_router.post("/htcbt/submit-batch")
+async def htcbt_submit_batch(req: HtcbtBatchSubmitRequest):
+    # Clean + de-duplicate the incoming codes, preserving order.
+    codes = []
+    seen = set()
+    for c in (req.sample_codes or []):
+        s = (c or "").strip()
+        key = s.upper()
+        if s and key not in seen:
+            seen.add(key)
+            codes.append(s)
+    if not codes:
+        raise HTTPException(status_code=400, detail="Minimal satu kode sampel harus diisi.")
+
+    truncated = len(codes) > HTCBT_MAX_SAMPLES
+    codes = codes[:HTCBT_MAX_SAMPLES]
+
+    added, skipped = [], []
+    active = await _htcbt_active_doc()
+    if active:
+        finish = _parse_iso(active.get("finish_at"))
+        if datetime.now(timezone.utc) >= finish:
+            raise HTTPException(
+                status_code=409,
+                detail="Run sebelumnya sudah SELESAI. Konfirmasi/arsipkan dulu sebelum memulai run baru.",
+            )
+        existing = active.get("samples", [])
+        existing_codes = {s.get("sample_code", "").upper() for s in existing}
+        slots = HTCBT_MAX_SAMPLES - len(existing)
+        to_push = []
+        for code in codes:
+            if code.upper() in existing_codes:
+                skipped.append({"code": code, "reason": "duplikat"})
+                continue
+            if len(to_push) >= slots:
+                skipped.append({"code": code, "reason": "batch penuh"})
+                continue
+            to_push.append(HtcbtSample(sample_code=code).model_dump())
+            existing_codes.add(code.upper())
+            added.append(code)
+        if to_push:
+            await db.htcbt_runs.update_one(
+                {"id": active["id"]}, {"$push": {"samples": {"$each": to_push}}}
+            )
+        doc = await db.htcbt_runs.find_one({"id": active["id"]}, {"_id": 0})
+        return {
+            "run": _htcbt_public(doc), "created": False,
+            "added": added, "skipped": skipped, "truncated": truncated,
+            "max_samples": HTCBT_MAX_SAMPLES,
+        }
+
+    # No active run — start a new batch with all codes.
+    method = None
+    if req.method_code:
+        method = next((m for m in HTCBT_METHODS if m["code"] == req.method_code), None)
+    if method is None:
+        method = _htcbt_method_for(req.temperature_c, req.duration_hours)
+
+    duration = req.duration_hours or (method["duration_hours"] if method else None)
+    temperature = req.temperature_c or (method["temperature_c"] if method else 0)
+    if not duration or float(duration) <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Durasi uji tidak terdeteksi. Pilih metode atau masukkan durasi (jam) manual.",
+        )
+
+    start = datetime.now(timezone.utc)
+    finish = start + timedelta(hours=float(duration))
+    run = HtcbtRun(
+        method_code=method["code"] if method else "",
+        method_label=method["label"] if method else f"Custom · {int(float(duration))} jam @ {int(float(temperature or 0))}°C",
+        temperature_c=float(temperature or 0),
+        duration_hours=float(duration),
+        samples=[HtcbtSample(sample_code=c) for c in codes],
+        operator=req.operator or "",
+        notes=req.notes or "",
+        image_path=req.image_path,
+        ocr_raw=req.ocr_raw or "",
+        start_at=start.isoformat(),
+        finish_at=finish.isoformat(),
+    )
+    await db.htcbt_runs.insert_one(run.model_dump())
+    added = list(codes)
+    return {
+        "run": _htcbt_public(run.model_dump()), "created": True,
+        "added": added, "skipped": skipped, "truncated": truncated,
+        "max_samples": HTCBT_MAX_SAMPLES,
+    }
 
 
 @api_router.delete("/htcbt/runs/{run_id}/samples/{sample_code}")

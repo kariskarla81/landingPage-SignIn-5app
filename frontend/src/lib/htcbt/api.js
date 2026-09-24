@@ -65,6 +65,11 @@ export function useHtcbtSubmit() {
   return useMutation({ mutationFn: (payload) => postJSON(`${HTCBT}/submit`, payload), onSuccess: () => invalidate(qc) });
 }
 
+export function useHtcbtSubmitBatch() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (payload) => postJSON(`${HTCBT}/submit-batch`, payload), onSuccess: () => invalidate(qc) });
+}
+
 export function useHtcbtComplete() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id) => postJSON(`${HTCBT}/runs/${id}/complete`), onSuccess: () => invalidate(qc) });

@@ -1,9 +1,9 @@
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, ImageIcon, Loader2, ScanLine, Play } from "lucide-react";
+import { Camera, ImageIcon, Loader2, ScanLine, Play, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
-  uploadImage, ocrLabelWithPolling, useHtcbtSubmit, useHtcbtMethods, defaultSampleId,
+  uploadImage, ocrLabelWithPolling, useHtcbtSubmitBatch, useHtcbtMethods, defaultSampleId,
 } from "@/lib/htcbt/api";
 import { CameraCapture } from "@/components/kht/capture";
 
@@ -26,7 +26,8 @@ export default function HtcbtNewSample() {
   const galleryRef = useRef(null);
   const { data: methodsData } = useHtcbtMethods();
   const methods = methodsData?.methods || [];
-  const submit = useHtcbtSubmit();
+  const maxSamples = methodsData?.max_samples || 4;
+  const submit = useHtcbtSubmitBatch();
 
   const [imageUri, setImageUri] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -35,8 +36,13 @@ export default function HtcbtNewSample() {
   const [rawText, setRawText] = useState("");
   const [scanned, setScanned] = useState(false);
   const [imagePath, setImagePath] = useState(null);
-  const [f, setF] = useState({ sampleId: "", operator: "", methodCode: "", temperature: "", duration: "" });
+  const [samples, setSamples] = useState([""]);
+  const [f, setF] = useState({ operator: "", methodCode: "", temperature: "", duration: "" });
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
+
+  const setSample = (idx, val) => setSamples((arr) => arr.map((c, i) => (i === idx ? val : c)));
+  const removeSample = (idx) => setSamples((arr) => (arr.length <= 1 ? [""] : arr.filter((_, i) => i !== idx)));
+  const addSample = () => setSamples((arr) => (arr.length >= maxSamples ? arr : [...arr, ""]));
 
   function onGalleryPick(e) {
     const file = e.target.files?.[0];
@@ -66,15 +72,21 @@ export default function HtcbtNewSample() {
       const r = await ocrLabelWithPolling(path, (sec) => setStage(`Membaca tulisan tangan\u2026 ${sec}s`));
       setImagePath(path);
       setRawText(r.raw_text || "");
+      const codes = Array.isArray(r.sample_codes) && r.sample_codes.length
+        ? r.sample_codes
+        : (r.sample_code ? [r.sample_code] : []);
+      setSamples(codes.length ? codes : [defaultSampleId()]);
       setF((s) => ({
         ...s,
-        sampleId: r.sample_code || s.sampleId || defaultSampleId(),
         methodCode: r.method_code || s.methodCode,
         temperature: r.temperature_c != null ? String(r.temperature_c) : s.temperature,
         duration: r.duration_hours != null ? String(r.duration_hours) : s.duration,
       }));
       setScanned(true);
-      toast.success("Label terbaca. Periksa data lalu mulai timer.");
+      if (r.over_limit) {
+        toast.warning(`Terdeteksi lebih dari ${r.max_samples || maxSamples} sampel. Hanya ${r.max_samples || maxSamples} pertama yang diambil.`);
+      }
+      toast.success(`Label terbaca — ${codes.length} sampel terdeteksi. Periksa data lalu mulai timer.`);
     } catch (e) {
       toast.error(`${step} gagal: ${String(e?.message || "OCR gagal").slice(0, 120)}`);
     } finally {
@@ -84,12 +96,13 @@ export default function HtcbtNewSample() {
   }
 
   async function startTimer() {
-    if (!f.sampleId.trim()) { toast.error("Kode sampel wajib diisi."); return; }
+    const codes = samples.map((c) => c.trim()).filter(Boolean);
+    if (!codes.length) { toast.error("Minimal satu kode sampel wajib diisi."); return; }
     if (!f.methodCode && !f.duration) { toast.error("Pilih metode atau isi durasi (jam)."); return; }
     setBusy(true);
     try {
       const res = await submit.mutateAsync({
-        sample_code: f.sampleId.trim(),
+        sample_codes: codes,
         temperature_c: f.temperature ? Number(f.temperature) : null,
         duration_hours: f.duration ? Number(f.duration) : null,
         method_code: f.methodCode || null,
@@ -97,7 +110,12 @@ export default function HtcbtNewSample() {
         image_path: imagePath,
         ocr_raw: rawText,
       });
-      toast.success(res.created ? "Smart Timer dimulai!" : "Sampel ditambahkan ke batch aktif.");
+      const addedN = (res.added || []).length;
+      const skippedN = (res.skipped || []).length;
+      let msg = res.created ? `Smart Timer dimulai — ${addedN} sampel.` : `${addedN} sampel ditambahkan ke batch aktif.`;
+      if (skippedN) msg += ` ${skippedN} dilewati (duplikat/penuh).`;
+      toast.success(msg);
+      if (res.truncated) toast.warning(`Beberapa sampel melebihi batas ${res.max_samples} dan tidak dimasukkan.`);
       navigate("/htcbt");
     } catch (e) {
       toast.error(String(e?.message || "Gagal memulai timer").slice(0, 140));
@@ -146,8 +164,49 @@ export default function HtcbtNewSample() {
         </button>
       )}
 
-      <div className="mt-1 font-mono text-[11px] tracking-[0.15em] text-amber-500">DATA SAMPEL {scanned ? "(hasil OCR \u2014 dapat diedit)" : ""}</div>
-      <Field label="Kode Sampel" value={f.sampleId} onChange={set("sampleId")} placeholder="cth: HTCBT-001" testId="htcbt-input-sample-id" />
+      <div className="mt-1 flex items-center justify-between">
+        <div className="font-mono text-[11px] tracking-[0.15em] text-amber-500">
+          DAFTAR SAMPEL {scanned ? "(hasil OCR \u2014 dapat diedit)" : ""}
+        </div>
+        <span className="font-mono text-[10px] text-zinc-500" data-testid="htcbt-sample-count">
+          {samples.filter((c) => c.trim()).length}/{maxSamples}
+        </span>
+      </div>
+      <div className="flex flex-col gap-2" data-testid="htcbt-sample-list">
+        {samples.map((code, idx) => (
+          <div key={idx} className="flex items-center gap-2" data-testid={`htcbt-sample-row-${idx}`}>
+            <span className="w-6 shrink-0 text-center font-mono text-[11px] text-zinc-500">{idx + 1}.</span>
+            <input
+              data-testid={`htcbt-input-sample-${idx}`}
+              value={code}
+              onChange={(e) => setSample(idx, e.target.value)}
+              placeholder={`cth: WZ 275215`}
+              className="h-11 flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 font-mono text-sm font-medium text-zinc-50 outline-none transition-colors placeholder:text-zinc-500 focus:border-amber-500"
+            />
+            <button
+              type="button"
+              onClick={() => removeSample(idx)}
+              data-testid={`htcbt-remove-sample-${idx}`}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-red-500/60 hover:text-red-400"
+              title="Hapus sampel"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+        {samples.length < maxSamples && (
+          <button
+            type="button"
+            onClick={addSample}
+            data-testid="htcbt-add-sample"
+            className="flex h-10 items-center justify-center gap-2 rounded-md border border-dashed border-zinc-600 bg-zinc-900/50 font-mono text-xs text-zinc-300 hover:border-amber-500/50 hover:text-amber-400"
+          >
+            <Plus className="h-4 w-4" /> Tambah Sampel
+          </button>
+        )}
+      </div>
+
+      <div className="mt-2 font-mono text-[11px] tracking-[0.15em] text-amber-500">DATA BATCH</div>
       <Field label="Operator" value={f.operator} onChange={set("operator")} placeholder="Nama analis (opsional)" testId="htcbt-input-operator" />
 
       <div className="mt-1 font-mono text-[11px] tracking-[0.15em] text-amber-500">METODE UJI</div>
